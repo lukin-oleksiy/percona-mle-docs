@@ -26,7 +26,7 @@ it is ready (the first start initialises the data directory, about 20 seconds):
 
 ```sh
 docker compose up -d --quiet-pull 2>/dev/null
-until docker compose exec mysql mysqladmin -uroot -pmle ping 2>/dev/null; do sleep 2; done
+for i in $(seq 60); do docker compose exec mysql mysqladmin -uroot -pmle ping 2>/dev/null && break; sleep 2; done
 ```
 
 ```text
