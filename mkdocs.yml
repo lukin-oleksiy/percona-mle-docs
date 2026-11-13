@@ -2,4 +2,5 @@ site_name: Percona MLE — multi-language stored programs
 nav:
   - Home: index.md
   - Tutorial: tutorial/index.md
+  - Install: install/index.md
 docs_dir: .

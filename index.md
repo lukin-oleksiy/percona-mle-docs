@@ -6,6 +6,7 @@ JavaScript, Python (with numpy) and Java for Percona Server, run by GraalVM in s
 | | |
 |---|---|
 | [Tutorial](tutorial/index.md) | an hour, hands-on, on the Docker image: three languages, SQL from routines, vectors with numpy, libraries across languages, packages, safety, monitoring |
+| [Install: builds and packages](install/index.md) | the JVM build and the Python-only native build (highly optimised for Python-only use), the packages, `mle.worker`, `mle.pool_prewarm`, requirements |
 | User guide | (in progress) |
 | Architecture & developer guide | (in progress) |
 
