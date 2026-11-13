@@ -31,6 +31,7 @@ Packages are built from the [percona-mle](https://github.com/lukin-oleksiy/perco
 | `percona-mle-python` | GraalPy for the JVM build | with Python | |
 | `percona-mle-python-native` | the Python-only native build | | yes |
 | `percona-mle-tools` | `mle_package`, the DBA's tool for third-party packages (runs on the JVM build) | optional | |
+| `percona-mle-selinux` | the SELinux policy for MLE's processes (RPM only; installed with `percona-mle-common` where SELinux policy is installed) | RHEL | RHEL |
 
 On Debian or Ubuntu, for example:
 
@@ -39,8 +40,15 @@ apt install percona-mle percona-mle-python        # the JVM build with Python (p
 apt install percona-mle-python-native             # the Python-only native build (pulls common, python-runtime)
 ```
 
-The `percona-mle` package makes the JDK's AOT cache that JVM workers start from when it is installed, and again when
-the JDK or Python packages change.
+On Red Hat Enterprise Linux and compatible systems (Oracle Linux, Rocky Linux, AlmaLinux):
+
+```sh
+dnf install percona-mle percona-mle-python         # also pulls percona-mle-selinux
+dnf install percona-mle-python-native
+```
+
+The `percona-mle` package makes the JDK's AOT cache that JVM workers start from: once after installing, and again
+whenever the JDK or Python packages are installed, upgraded or removed.
 
 ## Choosing the build: `mle.worker`
 
@@ -77,3 +85,45 @@ more memory per waiting worker, fast first calls.
   Without it MLE runs, with the workers' own heap limit and the system's limits.
 - Percona Server with the language router (`component_lang_router`), of the server line the packages were built
   for.
+
+## Red Hat Enterprise Linux and compatible systems
+
+**Landlock.** The sandbox needs the Landlock security module, which these kernels include but do not enable by
+default. Enable it on the kernel command line and reboot:
+
+```sh
+grubby --update-kernel=ALL --args="lsm=landlock,lockdown,yama,integrity,selinux,bpf"
+reboot
+cat /sys/kernel/security/lsm        # must list landlock
+```
+
+Without Landlock, `INSTALL COMPONENT 'file://component_mle'` fails with a message saying so.
+
+**SELinux.** MLE works with SELinux enforcing. The `percona-mle-selinux` package (installed automatically where
+SELinux policy is installed) runs the MLE processes in SELinux domains of their own:
+
+| Process | Domain | Allowed |
+|---|---|---|
+| `mysqld` | `mysqld_t` (unchanged) | starting `mle_launcher`; using the workers' sockets and shared memory; stopping workers |
+| `mle_launcher` | `mle_launcher_t` | starting workers; creating their cgroups and shared memory |
+| `mle_worker` | `mle_worker_t` | running code generated at run time (the JIT compiler); reading MLE's files and packages |
+
+`mysqld` itself gets no new rights to run generated code or to change cgroups. The worker sandbox (Landlock and
+seccomp) applies inside `mle_worker_t` as everywhere else.
+
+Third-party packages: the policy labels `/var/lib/mysql-mle-packages` for `mle.package_dir`. For another
+directory, label it the same way:
+
+```sh
+semanage fcontext -a -t mle_packages_t "/srv/mle-packages(/.*)?"
+restorecon -R /srv/mle-packages
+```
+
+**cgroups.** For memory and process limits per worker, delegate a cgroup to mysqld in its systemd unit
+(`systemctl edit mysqld`):
+
+```ini
+[Service]
+Delegate=yes
+DelegateSubgroup=mysqld
+```
