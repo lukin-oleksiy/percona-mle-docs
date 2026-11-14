@@ -602,6 +602,9 @@ SELECT hog();
 ERROR 6113 (HY000): JavaScript> Java heap space
 ```
 
+A routine's result (with its output) and each SQL statement it runs, with its parameters, can be at most 64 MiB;
+a larger one is an error the routine gets, and the session goes on.
+
 Even native code that crashes — here numpy reading through a broken view of memory — takes down only the
 session's worker; the next call gets a new one:
 
