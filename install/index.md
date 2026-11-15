@@ -71,12 +71,22 @@ INSTALL COMPONENT 'file://component_mle';
 GRANT CREATE_PYTHON_ROUTINE ON *.* TO 'app'@'%';   -- and CREATE_JAVASCRIPT_ROUTINE, CREATE_JAVA_ROUTINE (JVM build)
 ```
 
-## Starting Python ahead: `mle.pool_prewarm`
+## Preparing pool workers: `mle.pool_prewarm`
 
-Workers wait in a pool for new sessions. By default (`none`) a worker starts Python on its first Python routine,
-which keeps idle workers small but makes that first call slower (about two seconds on the JVM build, a fraction of
-a second on the native build). `python` starts Python in pool workers in advance, and `numpy` also imports numpy:
-more memory per waiting worker, fast first calls.
+Workers wait in a pool for new sessions. `mle.pool_prewarm` says what they prepare while they wait: `none`, or a
+comma-separated list of:
+
+- `python`: start Python in advance. Otherwise a worker starts Python on its first Python routine, which keeps idle
+  workers small but makes that first call slower (about two seconds on the JVM build, a fraction of a second on the
+  native build). It costs memory per waiting worker.
+- `numpy`: start Python and import numpy too.
+- `vectors` (the default): compile the vector helper's kernels (`com.percona.mle.api.Vectors`), so a session's first
+  vector call runs at full speed (otherwise up to about half a second slower). It costs about 2 CPU-seconds per new
+  pool worker, spent while the worker waits, and no memory to speak of. The native build has no vector helper and
+  ignores it.
+
+For example, `SET GLOBAL mle.pool_prewarm = 'numpy,vectors'`. Like `mle.memory_max`, it can be changed only while no
+session holds a worker.
 
 ## Requirements
 

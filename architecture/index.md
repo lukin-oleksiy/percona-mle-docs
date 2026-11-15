@@ -106,6 +106,7 @@ boundary.
 - **Values that cross languages are converted.** Large arrays are copied. APIs such as `Vectors.load(sql)` keep big
   data on one side (Java) and pass only results.
 - **New workers start cold.** Code is compiled while it runs, so the first calls in a new worker are slower.
-  Workers are therefore kept and reused by the same account's later sessions.
+  Workers are therefore prepared while they wait in the pool (the vector helper by default, Python on request:
+  `mle.pool_prewarm`), and kept and reused by the same account's later sessions.
 - **The Python-only native build** is a Native Image: it starts faster and uses less memory, but it has no Java
   routines, no JavaScript, no Java libraries and no vector helper.

@@ -495,8 +495,9 @@ What to know:
   `mle.memory_max`, it can be changed only while no session holds a worker.
 - **Speed:** on an 8-core laptop, related items for 10,000 vectors of 768 dimensions take about 0.15 s with 8 threads
   (numpy on one thread: about 2.5 s). One query against 100,000 such vectors takes about 6 ms, against about 14 ms with
-  numpy. The first call in a new worker is slower (up to about half a second) while the kernels are compiled; later
-  sessions of the same account reuse the warm worker.
+  numpy. Workers waiting in the pool compile the kernels in advance (`mle.pool_prewarm`, on by default), so the
+  first call is fast too. Only a worker started while a session waits (the pool was empty) is slower on its first
+  call, by up to about half a second; later sessions of the same account reuse the warm worker.
 - **Reading the rows** is often the larger cost: `load` of 100,000 such vectors takes about half a second when the
   InnoDB buffer pool holds them, and about twice that when it doesn't (`innodb_buffer_pool_size`; the default 128 MB
   is too small for 300 MB of vectors). For many queries, load once per call and search many times.
