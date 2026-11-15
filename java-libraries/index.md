@@ -143,7 +143,9 @@ a new JVM, nothing compiled yet, the jars loaded again.
 **2. Static state lasts as long as the worker.** Jar classes are loaded once per worker and stay loaded for the
 account's later sessions; so do Java routines, which stay compiled in the worker (a changed routine or library is
 compiled again). A static setting (such as ojAlgo's `limitThreadsTo(1)`), a cache or a singleton made in one session
-is still there in the next. Don't keep data that one session must not see in another in static fields.
+is still there in the next. A routine with `SQL SECURITY DEFINER` (the default) runs in its definer's worker, so its
+static state is shared by everyone who calls it. Don't keep data that one session or caller must not see in another
+in static fields.
 
 **3. Memory.** A library's arrays live on the worker's Java heap: `mle.heap_max`, 512 MiB by default, within the
 worker's whole limit `mle.memory_max` (2 GiB). 100,000 vectors of 768 floats take about 300 MB, and many libraries

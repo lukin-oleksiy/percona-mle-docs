@@ -749,13 +749,17 @@ SELECT greet('again'), compound(1, 0.5, 1);
 ```
 
 ```text
-ERROR 6113 (HY000): MLE> the MLE worker died: killed by signal 6 (Aborted)
+ERROR 6000 (HY000): MLE> the worker died: killed by signal 6 (Aborted)
 +------------------------------------------+---------------------+
 | greet('again')                           | compound(1, 0.5, 1) |
 +------------------------------------------+---------------------+
 | Hello, again! You are 5 characters long. |                1.50 |
 +------------------------------------------+---------------------+
 ```
+
+A lost worker is error 6000 (`MLE> ...`, with the reason), while an exception thrown by a routine's own code is
+error 6113 (`JavaScript> ...`, `Python> ...`, `Java> ...`), so a handler or a retry in the application can tell
+them apart.
 
 ## 9. Watching MLE
 
