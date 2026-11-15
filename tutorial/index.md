@@ -493,9 +493,13 @@ What to know:
 - **`load` runs SQL,** so it works in procedures only: stored functions cannot run SQL.
 - **Threads:** `mle.vector_threads` (default 4) is the most threads one call uses, and never more than the CPUs. Like
   `mle.memory_max`, it can be changed only while no session holds a worker.
-- **Speed:** on an 8-core laptop, related items for 10,000 vectors of 768 dimensions take about 0.2 s with 8 threads
+- **Speed:** on an 8-core laptop, related items for 10,000 vectors of 768 dimensions take about 0.15 s with 8 threads
   (numpy on one thread: about 2.5 s). One query against 100,000 such vectors takes about 6 ms, against about 14 ms with
-  numpy. The first call in a new worker takes about a second longer while the kernels are compiled.
+  numpy. The first call in a new worker is slower (up to about half a second) while the kernels are compiled; later
+  sessions of the same account reuse the warm worker.
+- **Reading the rows** is often the larger cost: `load` of 100,000 such vectors takes about half a second when the
+  InnoDB buffer pool holds them, and about twice that when it doesn't (`innodb_buffer_pool_size`; the default 128 MB
+  is too small for 300 MB of vectors). For many queries, load once per call and search many times.
 - **Rounding:** results can differ from numpy's in the last digits of a score, and two rows with almost equal scores
   (within about 1e-7) can swap places.
 

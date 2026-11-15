@@ -3,4 +3,5 @@ nav:
   - Home: index.md
   - Tutorial: tutorial/index.md
   - Install: install/index.md
+  - Polyglot architecture: architecture/index.md
 docs_dir: .
