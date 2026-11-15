@@ -652,6 +652,9 @@ SELECT JSON_EXTRACT(mle_packages(), '$.packages') AS packages;
 +----------------------------------------------------------------+
 ```
 
+Java libraries from Maven work the same way (`install java <group:artifact:version>`); the
+[Java libraries guide](../java-libraries/index.md) covers choosing one and the rules it must follow.
+
 ## 8. Safety: what a misbehaving routine can do
 
 Routines run in separate, locked-down worker processes, one per session, never inside the server. A routine cannot
