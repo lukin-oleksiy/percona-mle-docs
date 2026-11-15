@@ -728,8 +728,9 @@ ERROR 6113 (HY000): JavaScript> Java heap space
 ```
 
 numpy arrays and other native Python objects are freed by the worker's garbage collector. When a call's memory
-grows past half of `mle.memory_max`, the worker runs a collection itself, so a loop of large temporary arrays stays
-within the limit; the status variable `mle_worker_memory_gcs` counts these collections.
+is past half of `mle.memory_max` and growing fast enough to reach the limit soon, the worker runs a collection
+itself, so a loop of large temporary arrays stays within the limit, while large data that a call keeps costs no
+extra collections; the status variable `mle_worker_memory_gcs` counts these collections.
 
 A routine's result (with its output) and each SQL statement it runs, with its parameters, can be at most 64 MiB;
 a larger one is an error the routine gets, and the session goes on.
