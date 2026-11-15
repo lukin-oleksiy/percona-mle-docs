@@ -108,4 +108,4 @@ boundary.
 - **New workers start cold.** Code is compiled while it runs, so the first calls in a new worker are slower.
   Workers are therefore kept and reused by the same account's later sessions.
 - **The Python-only native build** is a Native Image: it starts faster and uses less memory, but it has no Java
-  routines, no JavaScript and no Java libraries.
+  routines, no JavaScript, no Java libraries and no vector helper.

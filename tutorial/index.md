@@ -502,6 +502,8 @@ What to know:
   is too small for 300 MB of vectors). For many queries, load once per call and search many times.
 - **Rounding:** results can differ from numpy's in the last digits of a score, and two rows with almost equal scores
   (within about 1e-7) can swap places.
+- **The JVM build only:** the Python-only native build cannot reach Java classes, so it has no vector helper (numpy
+  works there as usual).
 
 ## 6. Libraries shared across languages
 
