@@ -384,6 +384,121 @@ apple juice  similarity 0.746  price 2.10  score 0.736
 (`mle_session_state('stdout')` collects the console of the whole session; `mle_session_reset('stdout')` clears
 it, so that only the recommendations are shown. `\G` shows the multi-line text without a table frame.)
 
+### Vectors in every language: the vector helper
+
+JavaScript and Java have no numpy, and some work compares whole tables rather than one query: "related items" for
+every row of a catalogue compares every row with every other. For both, MLE has a vector helper,
+`com.percona.mle.api.Vectors`. It computes dot products, cosine similarity, Euclidean distance and the k nearest
+rows (for one query, for many, or for every row against all others), with SIMD instructions and, for large work,
+several threads. It is the same in all three languages, and it stays compiled in the worker from one session to
+the next.
+
+`Vectors.load(sql)` reads `id, vector` rows and keeps them in Java, so a JavaScript or Python routine can search
+many rows without copying them. Related items for the whole catalogue, written to a table:
+
+```sql
+CREATE TABLE related (id BIGINT UNSIGNED, rel BIGINT UNSIGNED, similarity FLOAT, PRIMARY KEY (id, rel));
+CREATE PROCEDURE find_related(IN k INT) MODIFIES SQL DATA
+LANGUAGE JAVASCRIPT AS $$
+  const Vectors = Java.type('com.percona.mle.api.Vectors');
+  const all = Vectors.load('SELECT id, embedding FROM items');
+  const found = all.related(k, 'cosine');
+  session.runSql('DELETE FROM related');
+  for (let i = 0; i < found.length; i++)
+    for (let j = 0; j < found[i].size(); j++)
+      session.runSql('INSERT INTO related VALUES (?, ?, ?)', [all.id(i), found[i].id(j), found[i].score(j)]);
+$$;
+CALL find_related(2);
+SELECT i.name, GROUP_CONCAT(r.name ORDER BY x.similarity DESC SEPARATOR ', ') AS related
+  FROM related x JOIN items i ON i.id = x.id JOIN items r ON r.id = x.rel GROUP BY i.id, i.name ORDER BY i.id;
+```
+
+```text
++-------------+------------------------+
+| name        | related                |
++-------------+------------------------+
+| red apple   | green apple, apple pie |
+| green apple | red apple, apple pie   |
+| banana      | orange, green apple    |
+| apple juice | apple pie, red apple   |
+| orange      | banana, green apple    |
+| apple pie   | apple juice, red apple |
++-------------+------------------------+
+```
+
+The same in Java, for a query vector and only the rows a `WHERE` clause selects. A result prints as JSON, best
+first:
+
+```sql
+CREATE PROCEDURE nearest_java(IN q VECTOR(4), IN k INT, OUT result TEXT) READS SQL DATA
+LANGUAGE JAVA AS $$
+VectorSet all = Vectors.load("SELECT id, embedding FROM items WHERE price < ?", 5);
+result[0] = all.nearest(q, k, Vectors.Metric.COSINE).toString();
+$$;
+CALL nearest_java(STRING_TO_VECTOR('[1.0, 0.1, 0.0, 0.1]'), 3, @r);
+SELECT @r AS nearest;
+```
+
+```text
++-------------------------------------------------------------------------------------------------+
+| nearest                                                                                         |
++-------------------------------------------------------------------------------------------------+
+| [{"id": 1, "score": 0.99296427}, {"id": 2, "score": 0.9668595}, {"id": 4, "score": 0.74551916}] |
++-------------------------------------------------------------------------------------------------+
+```
+
+And in Python, the items nearest to item 3 by Euclidean distance (`nearestTo` leaves the item itself out):
+
+```sql
+CREATE PROCEDURE like_this(IN item BIGINT, OUT result TEXT) READS SQL DATA
+LANGUAGE PYTHON AS $$
+    import java
+    Vectors = java.type('com.percona.mle.api.Vectors')
+    m = Vectors.load('SELECT id, embedding FROM items').nearestTo(item, 2, 'euclidean')
+    result = ', '.join('%d (distance %.3f)' % (m.id(i), m.score(i)) for i in range(m.size()))
+$$;
+CALL like_this(3, @r);
+SELECT @r AS like_banana;
+```
+
+```text
++----------------------------------------+
+| like_banana                            |
++----------------------------------------+
+| 5 (distance 0.387), 2 (distance 0.933) |
++----------------------------------------+
+```
+
+Vectors can also be passed in directly: a `VECTOR` argument (a `Float32Array` in JavaScript, a numpy array in
+Python), a list of numbers, or a list of vectors for the rows. The `cosine` function from above, in JavaScript:
+
+```sql
+CREATE FUNCTION similarity(a VECTOR(4), b VECTOR(4)) RETURNS FLOAT DETERMINISTIC
+LANGUAGE JAVASCRIPT AS $$
+  return Java.type('com.percona.mle.api.Vectors').cosine(a, b);
+$$;
+```
+
+What to know:
+
+- **Metrics:** `'cosine'` (cosine similarity, highest first), `'dot'` (dot product, highest first) and `'euclidean'`
+  (distance, lowest first). Java can also use `Vectors.Metric.COSINE` and so on. A zero vector has similarity 0 with
+  everything.
+- **Methods:**
+  - on a `VectorSet` from `load`: `nearest(query, k, metric)`, `nearestTo(id, k, metric)`, `related(k, metric)`, plus
+    `size()`, `id(i)` and `skipped()` (rows with a `NULL` vector);
+  - on `Vectors` itself, for vectors you already have: `dot`, `cosine`, `distance`, `normalize`,
+    `nearest(query, rows, k, metric)` and `related(rows, k, metric)`.
+  - A result (`Matches`) has `size()`, `id(i)`, `index(i)` and `score(i)`, best first.
+- **`load` runs SQL,** so it works in procedures only: stored functions cannot run SQL.
+- **Threads:** `mle.vector_threads` (default 4) is the most threads one call uses, and never more than the CPUs. Like
+  `mle.memory_max`, it can be changed only while no session holds a worker.
+- **Speed:** on an 8-core laptop, related items for 10,000 vectors of 768 dimensions take about 0.2 s with 8 threads
+  (numpy on one thread: about 2.5 s). One query against 100,000 such vectors takes about 6 ms, against about 14 ms with
+  numpy. The first call in a new worker takes about a second longer while the kernels are compiled.
+- **Rounding:** results can differ from numpy's in the last digits of a score, and two rows with almost equal scores
+  (within about 1e-7) can swap places.
+
 ## 6. Libraries shared across languages
 
 `CREATE LIBRARY` (Oracle's statement, here for all three languages) stores code that routines import with
