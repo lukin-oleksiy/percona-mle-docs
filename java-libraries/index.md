@@ -140,17 +140,17 @@ a new JVM, nothing compiled yet, the jars loaded again.
   (parallel streams, `ForkJoinPool.commonPool()`), which the worker treats as its own.
 - `KILL` stops the routine but not threads a library started itself: they run until their work is done.
 
-**2. A library's static state lasts as long as the worker.** Jar classes are loaded once per worker and stay
-loaded for the account's later sessions. A static setting (such as ojAlgo's `limitThreadsTo(1)`), a cache or a
-singleton made in one session is still there in the next. Don't keep data that one session must not see in another
-in static fields.
+**2. Static state lasts as long as the worker.** Jar classes are loaded once per worker and stay loaded for the
+account's later sessions; so do Java routines, which stay compiled in the worker (a changed routine or library is
+compiled again). A static setting (such as ojAlgo's `limitThreadsTo(1)`), a cache or a singleton made in one session
+is still there in the next. Don't keep data that one session must not see in another in static fields.
 
 **3. Memory.** A library's arrays live on the worker's Java heap: `mle.heap_max`, 512 MiB by default, within the
 worker's whole limit `mle.memory_max` (2 GiB). 100,000 vectors of 768 floats take about 300 MB, and many libraries
 make a copy on top (in `double`, or packed for speed). Raise `mle.heap_max` for large matrices.
 
-**4. Put hot code in a jar, not in a routine body.** A jar's code stays compiled in the worker across the account's
-sessions. A routine body is compiled again in every session, so its loops start slow each time.
+**4. Hot code stays compiled.** A jar's code and a Java routine's code stay compiled in the worker across the
+account's sessions; only a new worker starts them cold.
 
 ## Checking a library
 
@@ -175,4 +175,4 @@ Normally `mle_worker_reuses` grows with each session. If `mle_workers_spawned` g
 - **Threads:** if the jar runs work in parallel, it must shut its pool down before it returns (rule 1), or use the
   JDK's shared pool.
 - **Warm-up:** a jar's code is compiled while it runs. A worker's first calls are slower, often for the first one
-  or two seconds of work, and later sessions of the same account get the compiled code.
+  or two seconds of work; later sessions of the same account get the compiled code.
