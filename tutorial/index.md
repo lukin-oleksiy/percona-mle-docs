@@ -105,7 +105,8 @@ SELECT slugify('Crème Brûlée & Café au Lait!') AS slug, price_label(1234.5, 
 
 A function is called like any other: in `SELECT` lists, `WHERE` clauses, generated values, triggers.
 
-When code throws, the error comes back to SQL; the JavaScript stack trace is kept for the session:
+When code throws, the error comes back to SQL and says where it happened. The whole traceback, with the source
+lines, is kept for the session (`mle_session_state('stack_trace')` gives the same frames in Oracle's compact form):
 
 ```sql
 CREATE FUNCTION first_word(s TEXT) RETURNS TEXT DETERMINISTIC
@@ -113,16 +114,16 @@ LANGUAGE JAVASCRIPT AS $$
   return s.split(' ')[0].toUpperCase()
 $$;
 SELECT first_word(NULL);
-SELECT TRIM(TRAILING '\n' FROM mle_session_state('stack_trace')) AS stack_trace;
+SELECT mle_session_state('traceback') AS traceback\G
 ```
 
 ```text
-ERROR 6113 (HY000): JavaScript> TypeError: Cannot read property 'split' of null
-+-------------------------+
-| stack_trace             |
-+-------------------------+
-| <js> first_word:2:10-21 |
-+-------------------------+
+ERROR 6113 (HY000): JavaScript> TypeError: Cannot read property 'split' of null (first_word, line 2)
+*************************** 1. row ***************************
+traceback: TypeError: Cannot read property 'split' of null
+    at first_word:2:10
+        return s.split(' ')[0].toUpperCase()
+
 ```
 
 ## 3. The same in Python and Java
@@ -239,7 +240,7 @@ SELECT id, name, stock FROM products WHERE id IN (1, 4);
 +---------+
 |    5.00 |
 +---------+
-ERROR 6113 (HY000): JavaScript> Error: cannot order 1 of product 4
+ERROR 6113 (HY000): JavaScript> Error: cannot order 1 of product 4 (place_order, line 7)
 +----+-------+-------+
 | id | name  | stock |
 +----+-------+-------+
@@ -269,6 +270,24 @@ SELECT mle_session_state('stdout') AS console\G
 *************************** 1. row ***************************
 console: cherry      2     9.60
 apple      10     5.00
+```
+
+This image also sets `mle.console = WARNINGS`: what a call prints comes back with the statement as warnings, so you
+see it without a second query (the `mysql` client prints warnings after each statement with `\W`, and
+`SHOW WARNINGS` lists them). It's a session setting, off by default on a server:
+
+```sql
+CALL sales_report();
+SHOW WARNINGS;
+```
+
+```text
++---------+------+--------------------------------------+
+| Level   | Code | Message                              |
++---------+------+--------------------------------------+
+| Warning | 6000 | sales_report: cherry      2     9.60 |
+| Warning | 6000 | sales_report: apple      10     5.00 |
++---------+------+--------------------------------------+
 ```
 
 A procedure can also send a result set to the client, as an SQL procedure's `SELECT` does. With parameters,
