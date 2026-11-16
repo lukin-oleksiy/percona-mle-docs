@@ -126,6 +126,9 @@ traceback: TypeError: Cannot read property 'split' of null
 
 ```
 
+[Debugging routines](../debugging/index.md) covers this and more: seeing what a routine printed, trying code with
+`mle_eval`, and the checks of `CREATE`.
+
 ## 3. The same in Python and Java
 
 **Python** bodies are indented like the body of a Python function. Python's standard library is there:
