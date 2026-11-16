@@ -35,8 +35,8 @@ a single JVM:
 
 **One SQL API, three languages.**
 - `session.runSql(...)`, prepared statements, transactions and result sets are implemented once, in Java.
-- JavaScript and Python see that implementation through thin *polyglot proxies*: `row.name` and `row['name']` in
-  JavaScript, `row.name` and `row[0]` in Python, with snake_case method names (`run_sql`, `fetch_all`) in Python.
+- JavaScript and Python see that implementation through thin *polyglot proxies*: `row.name`, `row['name']` and `row[0]` in
+  JavaScript and Python, with snake_case method names (`run_sql`, `fetch_all`) in Python.
   Java routines use the same classes directly (`Mle.session()`).
 - **Same behaviour everywhere:** limits, errors and transactions work the same in every language. A fix applies to
   all three. Reading a result row costs about the same in each language (a fraction of a microsecond).

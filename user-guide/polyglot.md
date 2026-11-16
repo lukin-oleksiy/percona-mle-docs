@@ -179,12 +179,14 @@ note 2: 6 words, share €33.33
 - **One worker per session and account:** all languages of a call run in the same worker, with the same sandbox and
   memory limit (`mle.memory_max` counts all of them).
 - **No threads** in Python; in Java, threads must end with the call (see [Java routines](java.md)).
-- **Errors cross too.** An exception raised in another language reaches the caller as an exception:
-  - JavaScript catches it as usual (`catch (e)`, `e.message` is `ValueError: bad value`);
-  - Java catches a `PolyglotException`;
-  - Python: errors from JavaScript and Java are `polyglot.ForeignException`, which derives from `BaseException`, not
-    `Exception`, so `except Exception` doesn't catch them: use `except polyglot.ForeignException` (after
-    `import polyglot`).
+- **Errors cross too.** An exception raised in another language reaches the caller as an exception it catches as
+  usual:
+  - JavaScript: `catch (e)` (`e.message` is `ValueError: bad value`);
+  - Java: a `PolyglotException`;
+  - Python: `except Exception` catches errors of JavaScript and Java code. Java's are subclasses of `Exception`;
+    JavaScript's are `polyglot.ForeignException` (not an `Exception` subclass), caught by `except Exception` in
+    routine bodies, libraries and `mle_eval` (MLE compiles that code); in a third-party package's code, catch
+    `polyglot.ForeignException` for them.
 
   Uncaught, the statement fails with the error and where it happened (see
   [Debugging routines](../debugging/index.md)).

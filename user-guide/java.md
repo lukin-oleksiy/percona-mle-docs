@@ -42,7 +42,7 @@ $$;
 ```text
 ERROR 6113 (HY000): Java> typo:3:10: cannot find symbol
   symbol:   variable totl
-  location: class MleRoutineBody
+  location: routine typo
 ```
 
 **A class of your own.** If the body declares a public class, MLE calls its public static method named like the

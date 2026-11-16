@@ -14,7 +14,7 @@ The API is the same in the three languages, in each language's style:
 | prepare | `session.prepare(sql)` | `session.prepare(sql)` | `Mle.session().prepare(sql)` |
 | bind, execute | `.bind(v1, v2).execute()` | `.bind(v1, v2).execute()` | `.bind(v1, v2).execute()` |
 | one row, all rows | `fetchOne()`, `fetchAll()` | `fetch_one()`, `fetch_all()` | `fetchOne()`, `fetchAll()` |
-| a column of a row | `row.name`, `row['name']`, `row[0]` | `row.name`, `row[0]` | `row.getField("name")`, `row.get(0)` |
+| a column of a row | `row.name`, `row['name']`, `row[0]` | `row.name`, `row['name']`, `row[0]` | `row.getField("name")`, `row.get(0)` |
 | transactions | `startTransaction()`, `commit()`, `rollback()` | `start_transaction()`, `commit()`, `rollback()` | the same as JavaScript |
 | an SQL error | `SqlError` (`code`, `sqlState`, `message`) | `SqlError` (`code`, `sql_state`, `message`) | `MleSqlException` |
 

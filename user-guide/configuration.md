@@ -52,6 +52,9 @@ Peak memory is roughly:
 | `mle.max_workers` | 64 | workers held by sessions at a time; beyond it calls fail (error 6112) |
 | `mle.languages` | `JAVASCRIPT,PYTHON,JAVA` | the languages routines may use |
 
+- numpy's memory is freed by Java's garbage collector; near the limit the worker runs it itself
+  (`mle_worker_memory_gcs`). On a host whose CPUs are all busy, a loop that allocates large temporary arrays very
+  fast can still pass the limit: leave headroom, or reuse arrays (`out=` arguments).
 - `mle.memory_max` needs a delegated cgroup (systemd `Delegate=yes` for mysqld's service, or a privileged container):
   without one, MLE logs a warning and workers have only the Java heap limit. `SHOW STATUS LIKE 'mle_cgroup'` says
   which is in effect.

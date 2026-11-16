@@ -39,6 +39,9 @@ What MLE doesn't do (yet), and the edges to know about. MLE is a proof of concep
 - **A new JVM worker starts in about 2.5 s**; the pool (`mle.pool_size`) hides it for new sessions.
 - **Memory:** a JVM worker that uses Python and numpy needs about 0.6–0.8 GB; the native build about half (see
   [Configuration and sizing](configuration.md)).
+- **numpy memory** is freed by Java's garbage collector, which the worker runs itself near `mle.memory_max`. On a host
+  whose CPUs are all busy, a loop that allocates large temporary arrays very fast can still pass the limit before
+  the collector frees them, and the worker is killed: leave headroom, or reuse arrays (`out=` arguments).
 - **Python is single-threaded in a worker** (GraalPy's lock): calls between Python and the other languages are cheap,
   but don't run Python in parallel inside one call.
 
