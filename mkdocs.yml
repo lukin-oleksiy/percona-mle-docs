@@ -2,7 +2,10 @@ site_name: Percona MLE — multi-language stored programs
 nav:
   - Home: index.md
   - Tutorial: tutorial/index.md
-  - Debugging routines: debugging/index.md
+  - User guide:
+      - Concepts: user-guide/concepts.md
+      - JavaScript routines: user-guide/javascript.md
+      - Debugging routines: debugging/index.md
   - Install: install/index.md
   - Java libraries: java-libraries/index.md
   - Polyglot architecture: architecture/index.md

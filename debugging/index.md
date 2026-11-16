@@ -18,10 +18,19 @@ examples come from the MLE test suite.
 `CREATE FUNCTION` and `CREATE PROCEDURE` compile the body, so a syntax error refuses the routine and names the line.
 In each language the message is the language's own:
 
+```sql
+CREATE FUNCTION js_bad() RETURNS INT LANGUAGE JAVASCRIPT AS $$ return 1 +; $$;
+CREATE FUNCTION py_bad() RETURNS INT LANGUAGE PYTHON AS $$ return ( $$;
+CREATE FUNCTION java_bad() RETURNS INT LANGUAGE JAVA AS $$ return 1 + ; $$;
+```
+
 ```text
 ERROR 6113 (HY000): JavaScript> SyntaxError: js_bad:1:11 Expected an operand but found ;
+ return 1 +;
+           ^
+
 ERROR 6113 (HY000): Python> SyntaxError: '(' was never closed (py_bad, line 1)
-ERROR 6113 (HY000): Java> broken:1:12: illegal start of expression
+ERROR 6113 (HY000): Java> java_bad:1:13: illegal start of expression
 ```
 
 Line numbers count from the line of `$$`: a body that starts on the line after `$$` has its first statement on
@@ -81,13 +90,16 @@ CREATE FUNCTION java_div(a INT) RETURNS INT LANGUAGE JAVA AS $$
   System.out.println("before, a = " + a);
   return arr[a + 5];
 $$;
-SELECT py_div(1);
-SELECT js_div(1);
-SELECT java_div(1);
 ```
 
 The message names the routine, the line and, for a nested function, its name. It's the innermost line of the
 routine's own code:
+
+```sql
+SELECT py_div(1);
+SELECT js_div(1);
+SELECT java_div(1);
+```
 
 ```text
 ERROR 6113 (HY000): Python> ZeroDivisionError: integer division or modulo by zero (py_div, line 3, in helper)
@@ -99,10 +111,12 @@ The whole call chain, in the language's usual form and with the source lines, is
 next call:
 
 ```sql
+SELECT py_div(1);
 SELECT mle_session_state('traceback') AS traceback\G
 ```
 
 ```text
+ERROR 6113 (HY000): Python> ZeroDivisionError: integer division or modulo by zero (py_div, line 3, in helper)
 *************************** 1. row ***************************
 traceback: Traceback (most recent call last):
   File "py_div", line 5, in <routine>
@@ -114,16 +128,25 @@ ZeroDivisionError: integer division or modulo by zero
 
 JavaScript and Java list the innermost frame first:
 
+```sql
+SELECT js_div(1);
+SELECT mle_session_state('traceback') AS traceback\G
+SELECT java_div(1);
+SELECT mle_session_state('traceback') AS traceback\G
+```
+
 ```text
-TypeError: Cannot read property 'field' of undefined
+ERROR 6113 (HY000): JavaScript> TypeError: Cannot read property 'field' of undefined (js_div, line 2, in helper)
+*************************** 1. row ***************************
+traceback: TypeError: Cannot read property 'field' of undefined
     at helper (js_div:2:31)
         function helper(v) { return v.missing.field }
     at js_div:4:10
         return helper({})
-```
 
-```text
-java.lang.ArrayIndexOutOfBoundsException: Index 6 out of bounds for length 2
+ERROR 6113 (HY000): Java> java.lang.ArrayIndexOutOfBoundsException: Index 6 out of bounds for length 2 (java_div, line 4)
+*************************** 1. row ***************************
+traceback: java.lang.ArrayIndexOutOfBoundsException: Index 6 out of bounds for length 2
     at java_div:4
         return arr[a + 5];
 ```
@@ -154,6 +177,7 @@ CREATE FUNCTION py_talk(n INT) RETURNS INT LANGUAGE PYTHON AS $$
     return n
 $$;
 SET SESSION mle.console = WARNINGS;
+\W
 SELECT py_talk(3);
 ```
 
@@ -171,12 +195,20 @@ Warning (Code 6000): py_talk stderr: done
 
 When a call fails, the warnings carry what it printed before the error, then its traceback:
 
+```sql
+SELECT py_div(1);
+```
+
 ```text
 ERROR 6113 (HY000): Python> ZeroDivisionError: integer division or modulo by zero (py_div, line 3, in helper)
 Warning (Code 6000): py_div: before, a = 1
+Error (Code 6113): Python> ZeroDivisionError: integer division or modulo by zero (py_div, line 3, in helper)
 Warning (Code 6000): py_div traceback: Traceback (most recent call last):
 Warning (Code 6000): py_div traceback:   File "py_div", line 5, in <routine>
-...
+Warning (Code 6000): py_div traceback:     return helper(a - a)
+Warning (Code 6000): py_div traceback:   File "py_div", line 3, in helper
+Warning (Code 6000): py_div traceback:     return 10 // v
+Warning (Code 6000): py_div traceback: ZeroDivisionError: integer division or modulo by zero
 ```
 
 Notes on `mle.console`:

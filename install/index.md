@@ -1,3 +1,4 @@
+<!-- check-page: skip: installs MLE on a server; the Docker image has it installed -->
 # Install: builds and packages
 
 Percona MLE comes in two builds. Both run routines in sandboxed worker processes outside the server; they differ

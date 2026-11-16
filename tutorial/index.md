@@ -5,7 +5,7 @@ In about an hour you write stored functions and procedures in three languages on
 between languages, install a third-party package as the DBA, and see what happens when a routine misbehaves.
 
 Everything runs in Docker; nothing is installed on your machine. Every command and every output on this page is
-checked by running the page (`check_tutorial.py`), so what you see is what you should get.
+checked by running the page (`check_docs.py`), so what you see is what you should get.
 
 **You need:** Docker with Compose on Linux (tested on Linux 7.0; MLE needs Landlock, kernel 6.12 or newer); about
 8 GB of memory for the container; network access for step 7.

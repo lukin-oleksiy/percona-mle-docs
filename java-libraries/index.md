@@ -1,3 +1,4 @@
+<!-- check-page: skip: not yet made runnable (exp note 40) -->
 # Java libraries for routines (a DBA guide)
 
 Routines can use third-party Java libraries (jars) that the DBA installs. A jar serves routines in all three

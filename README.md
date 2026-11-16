@@ -9,7 +9,7 @@ JavaScript, Python (with numpy) and Java for Percona Server, run by GraalVM in s
 | User guide | (in progress) |
 | Architecture & developer guide | (in progress) |
 
-The tutorial is tested: `tutorial/check_tutorial.py` runs every command on the page against the Docker image (with
-`percona-mle` checked out next to this repository) and compares every output.
+The pages are tested: `check_docs.py` runs every command on every page against the Docker image (with `percona-mle`
+checked out next to this repository) and compares every output. A page that can't run there says why at its top.
 
 Markdown, laid out for mkdocs (`mkdocs.yml`). A proof of concept; GPLv2 like the code.

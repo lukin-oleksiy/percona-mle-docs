@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Runs the MLE tutorial literally and checks every output it shows.
+"""Runs the documentation's pages literally and checks every output they show.
 
-    check_tutorial.py [--record] [--keep] [--compose-dir DIR] [tutorial.md]
+    check_docs.py [--record] [--keep] [--compose-dir DIR] [page.md ...]
 
-Every ```sh and ```sql block runs in order, against a fresh Docker Compose
-project of its own (COMPOSE_PROJECT_NAME=mle-tutorial-check, port 33996), in
-the directory of compose.yaml (docker/ in percona-mle). The ```text block that
+Without pages: every page in mkdocs.yml's nav, except pages marked
+<!-- check-page: skip --> (the reason follows in the comment's text).
+
+Each page runs against a fresh Docker Compose project of its own
+(COMPOSE_PROJECT_NAME=mle-docs-check, port 33996), in the directory of
+compose.yaml (docker/ in percona-mle): the checker starts the server and waits
+for it, then every ```sh and ```sql block runs in order. The ```text block that
 follows a block (only blank lines between) is its expected output.
 
-SQL blocks run in ONE client session, as for a reader who keeps the client
-of step 1 open (`mysql -uapp -papp --table app` in the server container;
+SQL blocks run in ONE client session per page, as for a reader who keeps the
+client open (`mysql -uapp -papp --table app` in the server container;
 `connect` in a block reconnects, as in the interactive client); the client's
 "at line N" in error messages is dropped (the interactive client does not
 print it). Root blocks run in a session of their own (a second terminal).
@@ -31,10 +35,11 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_COMPOSE_DIR = os.path.normpath(
-    os.path.join(HERE, '../../percona-mle/docker'))
+    os.path.join(HERE, '../percona-mle/docker'))
 FENCE = re.compile(r'^```(\w*)[^\n]*\n(.*?)^```[ \t]*$', re.M | re.S)
 DIRECTIVE = re.compile(r'<!--\s*([\w-]+)\s*:\s*(.*?)\s*-->')
 NOISE = re.compile(r'^(mysql|mysqladmin): \[Warning\] Using a password.*\n', re.M)
@@ -102,21 +107,28 @@ class Session:
             self.p.wait()
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('tutorial', nargs='?', default=os.path.join(HERE, 'index.md'))
-    ap.add_argument('--compose-dir', default=DEFAULT_COMPOSE_DIR)
-    ap.add_argument('--record', action='store_true')
-    ap.add_argument('--keep', action='store_true')
-    ap.add_argument('--record-varies', action='store_true',
-                    help='with --record: also record outputs marked "output: varies" (a sample)')
-    a = ap.parse_args()
-    os.environ.setdefault('COMPOSE_PROJECT_NAME', 'mle-tutorial-check')
-    os.environ.setdefault('MLE_PORT', '33996')
-    cwd = a.compose_dir
-    text = open(a.tutorial).read()
-    bl = blocks(text)
+def start_server(cwd):
+    """A fresh project: the data directory is initialised (about 20 s)."""
     run('docker compose --profile tools down -v', cwd)
+    run('docker compose up -d --quiet-pull', cwd)
+    for _ in range(90):
+        out, rc = run('docker compose exec -T mysql mysqladmin -uroot -pmle ping', cwd)
+        if rc == 0 and 'alive' in out:
+            return True
+        time.sleep(2)
+    return False
+
+
+def check_page(path, a):
+    """Runs one page; the number of failed blocks."""
+    cwd = a.compose_dir
+    text = open(path).read()
+    bl = blocks(text)
+    name = os.path.relpath(path, HERE)
+    print(f'== {name}')
+    if not start_server(cwd):
+        print(f'{name}: the server did not start')
+        return 1
 
     app = Session(cwd, 'app', 'app')
     failures = 0
@@ -161,11 +173,11 @@ def main():
                 print(f'line {line}: DIFF {first}')
                 sys.stdout.writelines(difflib.unified_diff(
                     [l + '\n' for l in want.splitlines()], [l + '\n' for l in got.splitlines()],
-                    'tutorial', 'actual'))
+                    name, 'actual'))
             i += 2
             continue
         if actual.strip():
-            print(f'line {line}: output not shown in the tutorial ({first}):')
+            print(f'line {line}: output not shown on the page ({first}):')
             print(''.join('    ' + l + '\n' for l in actual.rstrip().splitlines()))
             if rc != 0:
                 failures += 1
@@ -176,11 +188,42 @@ def main():
     if a.record and replacements:
         for s, e, new in sorted(replacements, reverse=True):
             text = text[:s] + new + text[e:]
-        open(a.tutorial, 'w').write(text)
-        print(f'recorded {len(replacements)} outputs into {a.tutorial}')
+        open(path, 'w').write(text)
+        print(f'recorded {len(replacements)} outputs into {name}')
     app.close()
     if not a.keep:
         run('docker compose --profile tools down -v', cwd)
+    return failures
+
+
+def nav_pages():
+    """The pages of mkdocs.yml's nav, in order."""
+    pages = re.findall(r'^\s*-\s*[^:]+:\s*(\S+\.md)\s*$', open(os.path.join(HERE, 'mkdocs.yml')).read(), re.M)
+    return [os.path.join(HERE, p) for p in pages]
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('pages', nargs='*')
+    ap.add_argument('--compose-dir', default=DEFAULT_COMPOSE_DIR)
+    ap.add_argument('--record', action='store_true')
+    ap.add_argument('--keep', action='store_true', help='leave the last page\'s compose project running')
+    ap.add_argument('--record-varies', action='store_true',
+                    help='with --record: also record outputs marked "output: varies" (a sample)')
+    a = ap.parse_args()
+    os.environ.setdefault('COMPOSE_PROJECT_NAME', 'mle-docs-check')
+    os.environ.setdefault('MLE_PORT', '33996')
+    pages = [os.path.abspath(p) for p in a.pages] or nav_pages()
+    failures = 0
+    for path in pages:
+        skip = re.search(r'<!--\s*check-page\s*:\s*skip\b(.*?)-->', open(path).read(), re.S)
+        if skip and not a.pages:
+            print(f'== {os.path.relpath(path, HERE)}: skipped{skip.group(1).rstrip()}')
+            continue
+        if not any(b['lang'] in ('sh', 'sql') for b in blocks(open(path).read())):
+            print(f'== {os.path.relpath(path, HERE)}: no examples')
+            continue
+        failures += check_page(path, a)
     print('FAILED: %d block(s)' % failures if failures else 'all blocks ok')
     return 1 if failures else 0
 
