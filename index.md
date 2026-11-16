@@ -6,10 +6,8 @@ JavaScript, Python (with numpy) and Java for Percona Server, run by GraalVM in s
 | | |
 |---|---|
 | [Tutorial](tutorial/index.md) | an hour, hands-on, on the Docker image: three languages, SQL from routines, vectors with numpy and the vector helper, libraries across languages, packages, safety, monitoring |
-| [Debugging routines](debugging/index.md) | errors with their location, the traceback, what a call printed (`mle.console = WARNINGS`), trying code with `mle_eval`, the checks of `CREATE`, common mistakes |
-| [Install: builds and packages](install/index.md) | the JVM build and the Python-only native build (highly optimised for Python-only use), the packages, `mle.worker`, `mle.pool_prewarm`, requirements |
-| [Java libraries for routines](java-libraries/index.md) | a DBA guide: installing jars, using them from Java, Python and JavaScript, choosing a library for numeric work, the rules a library must follow in MLE workers |
-| User guide: [Concepts](user-guide/concepts.md), [JavaScript routines](user-guide/javascript.md) | writing routines: functions and procedures, libraries, where code runs and what lives how long, privileges; JavaScript: the body, types, options, OUT parameters, globals, errors, libraries (more pages in progress) |
+| **User guide: writing routines** | [Concepts](user-guide/concepts.md) · [JavaScript](user-guide/javascript.md) · [Python](user-guide/python.md) · [Java](user-guide/java.md) · [Languages together](user-guide/polyglot.md) · [SQL from routines](user-guide/sql.md) · [Libraries](user-guide/libraries.md) · [Vectors](user-guide/vectors.md) · [Debugging](debugging/index.md) |
+| **User guide: running MLE** | [Install](install/index.md) · [Configuration and sizing](user-guide/configuration.md) · [Packages](user-guide/packages.md) · [Java libraries](java-libraries/index.md) · [Security](user-guide/security.md) · [Operations](user-guide/operations.md) · [Reference](user-guide/reference.md) · [Limitations](user-guide/limitations.md) |
 | [How MLE uses GraalVM's polyglot runtime](architecture/index.md) | one worker process for three languages: what is shared (SQL API, value conversion, the vector helper, libraries, sandbox) and what users get from it |
 | Developer guide | (in progress) |
 

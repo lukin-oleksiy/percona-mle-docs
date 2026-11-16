@@ -185,7 +185,9 @@ SELECT @first, @last, @first2, @last2, @calls;
 | `mysql` | `mysql.rand()`, `mysql.sleep(seconds)`, `mysql.uuid()`, `mysql.isUUID(s)`, `mysql.arg()`, and the constants `mysql.Type`, `mysql.IntegerType`, `mysql.DecimalType` |
 | `SqlError` | an error with an SQL state and error number (below) |
 | `console` | `console.log`, `console.info` and `console.debug` write to the session's stdout, `console.error` and `console.warn` to its stderr; `console.clear()` clears both |
+| `importPython` | `importPython('numpy')`: a Python module (numpy, PyPI packages the DBA installed) |
 | `Java` | `Java.type('java.util.UUID')`: Java classes, including jars the DBA installed (see [Java libraries](../java-libraries/index.md)) |
+| `Polyglot` | `Polyglot.eval('python', code)`: code of another language |
 
 ## Errors
 
@@ -261,7 +263,8 @@ SELECT slug('Crème Brûlée à la carte') AS slug;
 - A routine can also `await import('/schema/library')`, for a library of its own schema; libraries of other schemas
   need `USING`.
 - npm packages the DBA installed: `require('name')` (CommonJS) or `await import('name')` (ES modules).
-- A Python library in `USING` gives the routine the Python module's names (the JVM build runs both).
+- Python and Java libraries in `USING` work the same way, and numpy and Java classes are a call away: see
+  [Languages together](polyglot.md).
 
 ## Not available
 

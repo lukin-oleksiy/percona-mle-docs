@@ -1,4 +1,3 @@
-<!-- check-page: skip: not yet made runnable (exp note 40) -->
 # Java libraries for routines (a DBA guide)
 
 Routines can use third-party Java libraries (jars) that the DBA installs. A jar serves routines in all three
@@ -13,6 +12,8 @@ Jars need the JVM build: the Python-only native build has no Java.
 Jars come from Maven with the DBA's tool `mle_package` (in the `percona-mle-tools` package, or the tools Docker
 image). It installs a library and its dependencies into `java/` below the package directory (`mle.package_dir`):
 
+<!-- check-sh: docker compose run --rm tools install java org.ejml:ejml-ddense:0.46.1 >/dev/null 2>&1 -->
+<!-- check: skip -->
 ```sh
 mle_package install java org.ejml:ejml-ddense:0.46.1
 mle_package list
@@ -24,8 +25,17 @@ others (`mle_package` checks this): workers run what is in it.
 Workers load the jars when they start, and a running worker keeps what it has. Then, in mysqld, while no session
 holds a worker:
 
+<!-- as: root -->
 ```sql
 SELECT mle_packages_refresh();
+```
+
+```text
++--------------------------------------------------+
+| mle_packages_refresh()                           |
++--------------------------------------------------+
+| New MLE workers will see the installed packages. |
++--------------------------------------------------+
 ```
 
 New workers see the change. A session holding a worker can release it with `SELECT mle_session_reset();`.
@@ -159,9 +169,19 @@ account's sessions; only a new worker starts them cold.
 
 Call a routine that uses the library a few times, each time in a new session, and watch two status variables:
 
+<!-- output: varies -->
 ```sql
 SELECT VARIABLE_NAME, VARIABLE_VALUE FROM performance_schema.global_status
  WHERE VARIABLE_NAME IN ('mle_workers_spawned', 'mle_worker_reuses');
+```
+
+```text
++---------------------+----------------+
+| VARIABLE_NAME       | VARIABLE_VALUE |
++---------------------+----------------+
+| mle_worker_reuses   | 0              |
+| mle_workers_spawned | 3              |
++---------------------+----------------+
 ```
 
 Normally `mle_worker_reuses` grows with each session. If `mle_workers_spawned` grows instead, and

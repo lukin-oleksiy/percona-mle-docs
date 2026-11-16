@@ -1,4 +1,3 @@
-<!-- check-page: skip: not yet made runnable (exp note 40) -->
 # How MLE uses GraalVM's polyglot runtime
 
 MLE runs JavaScript, Python and Java stored programs on GraalVM. GraalVM is a JVM that can also host other
@@ -74,11 +73,24 @@ public final class Shapes {
 $$;
 CREATE FUNCTION js_geo(w DOUBLE, h DOUBLE) RETURNS DOUBLE LANGUAGE JAVASCRIPT USING (geo)
   AS $$ return geo.Shapes.diagonal(w, h) $$;
-CREATE FUNCTION js_numpy() RETURNS TEXT LANGUAGE JAVASCRIPT AS $$
-  const np = importPython('numpy'), py = importPython('builtins')
-  return 'norm ' + np.linalg.norm(np.array(py.list([3, 4]))).item()
+CREATE FUNCTION js_numpy() RETURNS DOUBLE LANGUAGE JAVASCRIPT AS $$
+  const np = importPython('numpy')
+  return np.linalg.norm([3, 4])
 $$;
+SELECT js_geo(3, 4) AS java_from_javascript, js_numpy() AS numpy_from_javascript;
 ```
+
+```text
++----------------------+-----------------------+
+| java_from_javascript | numpy_from_javascript |
++----------------------+-----------------------+
+|                    5 |                     5 |
++----------------------+-----------------------+
+```
+
+MLE converts values at these boundaries where the runtime alone would not: JavaScript and Java arrays become numpy
+arrays when numpy functions get them (one memory copy for numbers), and numpy's numbers are plain numbers in
+JavaScript and Java ([Languages together](../user-guide/polyglot.md) has the details).
 
 **Sandboxing.** MLE uses the polyglot runtime's own access controls on top of the worker process's sandbox:
 - JavaScript and Python can use Java objects, but not reflection, class loading, threads, processes or JVM
@@ -104,7 +116,8 @@ boundary.
 
 ## Costs and limits
 
-- **Values that cross languages are converted.** Large arrays are copied. APIs such as `Vectors.load(sql)` keep big
+- **Values that cross languages are shared or converted.** Objects are shared (each language uses the other's object
+  with its own syntax); arrays given to numpy are copied. APIs such as `Vectors.load(sql)` keep big
   data on one side (Java) and pass only results.
 - **New workers start cold.** Code is compiled while it runs, so the first calls in a new worker are slower.
   Workers are therefore prepared while they wait in the pool (the vector helper by default, Python on request:

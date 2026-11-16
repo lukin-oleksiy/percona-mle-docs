@@ -214,8 +214,9 @@ Warning (Code 6000): py_div traceback: ZeroDivisionError: integer division or mo
 Notes on `mle.console`:
 - It's a session variable, `OFF` by default; `SET GLOBAL` sets it for new sessions. The Docker development image
   sets `WARNINGS`.
-- `max_error_count` (1024 by default) limits the warnings of one statement; a call that prints in a loop over many
-  rows reaches it quickly. Print a summary instead, or read `last_output`.
+- Each call adds at most 100 lines per stream (longer lines are cut at 500 characters), then one line that says how
+  many more there were; `last_output` has them all. The statement's warnings are also limited by `max_error_count`
+  (1024 by default): a function called for many rows reaches it quickly. Print a summary instead.
 - An SQL procedure with a `CONTINUE HANDLER FOR SQLWARNING` sees these warnings too.
 
 Printing is the usual way to look at intermediate values. For rows and dictionaries, print them as JSON

@@ -66,7 +66,7 @@ SELECT count_tables();
 ```
 
 ```text
-ERROR 6120 (HY000): Executing SQL statement using Prepared Statement Handle Interface is not allowed within stored function, trigger or loadable function (UDF).
+ERROR 6113 (HY000): JavaScript> SQL statements are not allowed in stored functions and triggers: use a stored procedure (count_tables, line 2)
 ```
 
 The same code in a procedure works:
@@ -109,8 +109,9 @@ SELECT gross_js(100) AS gross;
 +-------+
 ```
 
-Libraries can be written in JavaScript or Python, and a routine can use a library of another language. The
-[tutorial](../tutorial/index.md#6-libraries-shared-across-languages) has an example; the libraries page has the rules.
+Libraries can be written in JavaScript, Python or Java, and a routine can use a library of any of the three
+languages, as well as the other languages' packages, numpy and Java classes: see
+[Languages together](polyglot.md). The [Libraries](libraries.md) page has the rules.
 
 Third-party packages (npm, PyPI, Maven) are installed by the DBA with `mle_package`, not by routines: see the
 [tutorial](../tutorial/index.md#7-third-party-packages-the-dba).
@@ -195,7 +196,8 @@ parse, call libraries), within the sandbox.
 
 The DBA installs one of two builds (see [Install](../install/index.md)):
 
-- **The JVM build** runs all three languages and can share code between them.
+- **The JVM build** runs all three languages in one worker, where each can call the others' code (see
+  [Languages together](polyglot.md)).
 - **The Python-only native build** runs only Python routines, with about half the memory per worker and workers
   that start about ten times faster.
 
