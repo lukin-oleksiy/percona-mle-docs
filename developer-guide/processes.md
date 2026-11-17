@@ -8,8 +8,8 @@
 - **Start:** `INSTALL COMPONENT` starts it (`engine_start`): it picks the build (`mle.worker`), finds the cgroup base
   (`AUTO`: the parent of mysqld's own cgroup, if mysqld may manage it), describes the worker class (executable, JVM
   options, prewarm list, limits) and starts the launcher. If the engine can't start, `INSTALL` fails.
-- **Restart:** variables that shape workers (`mle.memory_max`, `heap_max`, `pool_size`, `pool_prewarm`,
-  `vector_threads`) restart the engine. That is refused while sessions hold workers. A restart bumps the generation:
+- **Restart:** variables that shape workers (`mle.memory_max`, `heap_max`, `malloc_mmap_threshold`, `pool_size`,
+  `pool_prewarm`, `vector_threads`) restart the engine. That is refused while sessions hold workers. A restart bumps the generation:
   workers of the old generation are not cached.
 - **A dead launcher** is restarted on the next request, at most once a second.
 - **`mle_packages_refresh()`** restarts the engine too, so new workers see the package directory.

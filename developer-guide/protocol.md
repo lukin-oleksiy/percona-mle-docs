@@ -12,7 +12,7 @@ it; the Java worker mirrors its constants in `Wire.java`, kept in sync by hand.
   - The header keeps each side's fields on its own cache line: the launcher's constants (magic `MLE1`, version,
     sizes), the host→worker sequence `to_w`, the worker→host sequence `to_h`, the two sides' sleep flags, the
     current message's header (`MessageHeader`), and the worker's statistics (`WorkerStats`: heap used and maximum, for
-    `mle_memory_used`; collections the memory watcher forced; whether the worker asks to be retired).
+    `mle_memory_used`; young collections the memory watcher caused; whether the worker asks to be retired).
   - **The two sides strictly alternate.** The sender writes the message into the arena, fills the message header and
     increments its sequence word; the receiver spins for a while (`mle.spin_us`), then sleeps on the futex of that
     word. The sleep flags tell the sender whether a `FUTEX_WAKE` is needed, so a busy exchange makes no system calls.

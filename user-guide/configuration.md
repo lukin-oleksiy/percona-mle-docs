@@ -49,12 +49,13 @@ Peak memory is roughly:
 |---|---|---|
 | `mle.memory_max` | 2 GB | each worker's memory (JVM, JavaScript, Python, numpy): a cgroup limit |
 | `mle.heap_max` | 512 MB | each worker's Java heap |
+| `mle.malloc_mmap_threshold` | 1 MB | allocations of at least this size in a worker (numpy arrays) are returned to the system as soon as they are freed; 0: glibc's adaptive default |
 | `mle.max_workers` | 64 | workers held by sessions at a time; beyond it calls fail (error 6112) |
 | `mle.languages` | `JAVASCRIPT,PYTHON,JAVA` | the languages routines may use |
 
-- numpy's memory is freed by Java's garbage collector; near the limit the worker runs it itself
-  (`mle_worker_memory_gcs`). On a host whose CPUs are all busy, a loop that allocates large temporary arrays very
-  fast can still pass the limit: leave headroom, or reuse arrays (`out=` arguments).
+- numpy's memory is freed by Java's garbage collector; when a call's memory grows, the worker makes it run a short
+  (young) collection (`mle_worker_memory_gcs`), never a long full one. A loop that allocates large temporary
+  arrays very fast can still pass the limit: leave headroom, or reuse arrays (`out=` arguments).
 - `mle.memory_max` needs a delegated cgroup (systemd `Delegate=yes` for mysqld's service, or a privileged container):
   without one, MLE logs a warning and workers have only the Java heap limit. `SHOW STATUS LIKE 'mle_cgroup'` says
   which is in effect.

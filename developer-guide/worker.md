@@ -92,13 +92,15 @@ import a library depends on the routine (its schema and `USING`). A changed libr
 
 ## Watchers
 
-- **`MemoryWatch`:** native memory (numpy) is freed only when Java's garbage collector runs, and numpy's native code
-  keeps allocating during a GC (a JVM pause doesn't stop native code); the frees show only afterwards. While a call
-  runs, the watcher samples the resident size every 10 ms and forces a collection when it is past half of the
-  limit, has grown by a tenth since the last one, and either grows fast enough to pass 85 % within 250 ms or is
-  above 70 % already; above 85 % it collects again at most every 50 ms (or twice the last GC's time). Counted in
-  `mle_worker_memory_gcs`. On a saturated host a loop of large temporaries can still outrun it (see the
-  limitations).
+- **`MemoryWatch`:** native memory (numpy) is freed only when Java's garbage collector collects the Python object
+  that refers to it; numpy's `malloc` doesn't make the JVM collect. While a call runs, the watcher samples the
+  resident size every 10 ms; when it has grown by a twentieth of the limit since the last time, it causes a
+  *young* GC: it allocates short-lived garbage until a weak reference to a fresh object is cleared (~1 ms pause,
+  frees the arrays that died young). It never calls `System.gc()`: a forced full GC took 125-190 ms and made every
+  ~25th call of a 16 MB `fetch_columns` stream that slow (exp note 45). Counted in `mle_worker_memory_gcs`.
+  Freed arrays reach the system at once because workers run with a fixed glibc mmap threshold
+  (`mle.malloc_mmap_threshold`, `GLIBC_TUNABLES`): glibc's adaptive threshold rises to 32 MiB after frees, and then
+  freed 16 MB arrays stayed in malloc's heap until the worker was killed.
 - **`ThreadWatch`:** a routine must not leave threads behind (they would outlive the call, escape `KILL` and serve
   the account's next session). At `RESET`, and at most every 5 seconds after a request, the worker looks for threads
   that aren't the runtime's (by name and by stack: code of a routine, a library or a DBA jar; any live virtual thread;
