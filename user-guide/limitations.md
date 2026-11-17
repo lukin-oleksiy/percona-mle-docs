@@ -47,7 +47,7 @@ What MLE doesn't do (yet), and the edges to know about. MLE is a proof of concep
 
 ## Data
 
-- **The largest result** of a statement a routine runs without parameters is `mle.sql_result_max` (64 MB); larger
-  results need a prepared statement (read with a cursor) or `fetch_columns`.
+- **The largest result** of a statement a routine runs is `mle.sql_result_max` (64 MB); read larger results in
+  parts (ranges of a key) or raise the setting.
 - **A routine's result** (with what it printed) and each statement it sends are limited to 64 MB.
 - **Python `VECTOR` arguments** are read-only numpy arrays, valid during the call (`copy()` to keep or change one).

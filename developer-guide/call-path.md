@@ -64,8 +64,10 @@ travel. Function names refer to `component/`, `host/` and the worker's Java clas
 While the host waits for a `RESULT`, the worker may send `SQL` instead (the routine called `session.run_sql`):
 
 - **`SqlRunner`** (`sql.cc`) runs it through the server's statement services in the caller's session
-  (`mysql_stmt_execute_direct` for text without parameters, buffered whole up to `mle.sql_result_max`; prepare,
-  bind and execute with a cursor otherwise, rows up to `mle.sql_row_max`). Statement handles use utf8mb4;
+  (`mysql_stmt_execute_direct` for text without parameters; prepare, bind and execute otherwise, without a cursor:
+  the statement service's `use_cursor` attribute, exp note 44). Either way the server buffers the whole result, up
+  to `mle.sql_result_max`; a cursor would copy it into a temporary table first. A server without the attribute
+  keeps the cursor (rows up to `mle.sql_row_max`). Statement handles use utf8mb4;
   `passResultToClient` sends a result set to the client through the session's protocol.
 - **Rows go back in chunks** (`mle.sql_chunk_rows`, about 768 KB), so a large result doesn't need to fit in the
   mailbox.

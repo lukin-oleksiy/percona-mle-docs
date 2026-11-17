@@ -20,8 +20,8 @@ sessions hold workers. Read-only ones are set in the configuration file (`loose-
 | `mle.interrupt_grace_ms` | 1000 | dynamic | how long a killed routine has to stop before its worker is killed |
 | `mle.spin_us` | 50 | dynamic | microseconds a session spins waiting for its worker before it sleeps |
 | `mle.console` | `OFF` | dynamic, session | `WARNINGS`: what calls print, and a failed call's traceback, become the statement's warnings |
-| `mle.sql_result_max` | 64 MB | dynamic | the largest result of a statement without parameters that a routine runs |
-| `mle.sql_row_max` | 16 MB | dynamic | the largest row of a prepared statement that a routine runs |
+| `mle.sql_result_max` | 64 MB | dynamic | the largest result of a statement that a routine runs |
+| `mle.sql_row_max` | 16 MB | dynamic | only with a server whose statement service has no `use_cursor` attribute: the largest row of a prepared statement (then read with a cursor) |
 | `mle.sql_statements_max` | 1024 | dynamic | statements a call keeps open |
 | `mle.sql_chunk_rows` | 1000 | dynamic | rows sent to the worker at a time (a chunk also ends at about 768 KB) |
 | `mle.cgroup_base` | `AUTO` | read-only | where worker cgroups go: `AUTO` (beside mysqld's, if delegated), `NONE`, or a path |

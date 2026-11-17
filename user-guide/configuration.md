@@ -111,5 +111,5 @@ See [Install](../install/index.md) for the packages.
 | `mle.console` | `OFF` | per session: `WARNINGS` adds what routines print to the statement's warnings (see [Debugging routines](../debugging/index.md)) |
 | `mle.vector_threads` | 4 | threads the vector helper may use in one call |
 | `mle.interrupt_grace_ms` | 1000 | how long a killed routine has to stop before its worker is killed |
-| `mle.sql_result_max`, `mle.sql_row_max`, `mle.sql_statements_max` | 64 MB, 16 MB, 1024 | SQL from routines (see [SQL from routines](sql.md#limits)) |
+| `mle.sql_result_max`, `mle.sql_statements_max` | 64 MB, 1024 | SQL from routines (see [SQL from routines](sql.md#limits)) |
 | `mle.package_dir` | `<mle.dir>/packages` | where `mle_package` installs third-party packages (read-only) |

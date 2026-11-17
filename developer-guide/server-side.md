@@ -19,6 +19,15 @@
   across the calls of one statement, instead of building it for every row: about a fifth of the per-call cost.
 - **Tests:** the `component_lang_router` suite and `main.sp*`.
 
+## The statement service (server branch)
+
+- **`use_cursor`:** a statement attribute (default true) of the `mysql_stmt_*` services. A prepared SELECT opens a
+  server-side cursor, which materialises the whole result into a temporary table and hands rows back from it; with
+  `use_cursor = false` execution collects the result like a regular statement, within `buffer_capacity`. MLE turns
+  the cursor off: for a 16 MB result it was 13 of 30 ms (exp note 44).
+- **Tests:** `test_services.test_execute_prepared_statement` (debug builds: the test component's `no_cursor` debug
+  keyword).
+
 ## component_mle
 
 ### Registration

@@ -9,6 +9,7 @@ workers down.
 | Variable | Effect |
 |---|---|
 | `MLE_WORKER_STDERR=1` | workers write to mysqld's stderr (the error log): JVM messages, crashes, debug prints |
+| `MLE_SQL_TRACE=1` | one line per CALL in the error log: the time of each stage of the routine's SQL (execute, read rows, encode, into the mailbox, the worker) |
 | `MLE_JVM_OPTIONS="..."` | more JVM options for JVM workers (`-D` options also reach native workers) |
 | `MLE_NATIVE_OPTIONS="..."` | runtime options for native workers, e.g. `-XX:+PrintGC` |
 | `MLE_DEBUG_WRITE_DIR=/dir` | workers may write in `/dir` (Landlock allows it; a warning in the error log); an absolute, writable path |
@@ -65,6 +66,7 @@ For JVM workers, JFR is the better tool: perf sees JIT-compiled code without nam
 | Question | Where to look |
 |---|---|
 | A call is slower than expected | JFR hot methods; `TraceCompilation` for guest code that never gets compiled; the per-call benchmark against an SQL function |
+| SQL from a routine is slower than expected | `MLE_SQL_TRACE=1`: which stage takes the time |
 | Memory grows | `mle_worker_memory_gcs`, JFR's GC events, the worker's PSS (`/proc/<pid>/smaps_rollup`); numpy memory is freed only by Java GCs |
 | A worker dies | the error log (signal, OOM kill); `MLE_WORKER_STDERR=1` for the JVM's own messages; its crash report needs `-XX:ErrorFile=<write dir>/hs_err_%p.log` |
 | Workers are not reused | `mle_workers_spawned` vs `mle_worker_reuses`; threads left by Java code (`ThreadWatch`); `mle.worker_cache_size` |

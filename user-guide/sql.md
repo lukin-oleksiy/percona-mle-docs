@@ -183,8 +183,8 @@ Options go with a statement (`runSql(sql, params, options)`, `prepare(sql, optio
 
 | Setting | Default | What |
 |---|---|---|
-| `mle.sql_result_max` | 64 MB | the largest result of a statement without parameters (buffered whole) |
-| `mle.sql_row_max` | 16 MB | the largest row of a prepared statement (read with a cursor) |
+| `mle.sql_result_max` | 64 MB | the largest result of a statement (the server holds it while the routine reads it) |
 | `mle.sql_statements_max` | 1024 | statements a call keeps open |
 
-For large results, prepare the statement (rows are then read as you fetch them) or use `fetch_columns`.
+Rows reach the routine in chunks as it fetches them, so the routine holds only what it keeps. For results larger
+than `mle.sql_result_max`, read them in parts (ranges of a key) or raise the setting.
