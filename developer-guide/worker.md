@@ -96,8 +96,11 @@ import a library depends on the routine (its schema and `USING`). A changed libr
   that refers to it; numpy's `malloc` doesn't make the JVM collect. While a call runs, the watcher samples the
   resident size every 10 ms; when it has grown by a twentieth of the limit since the last time, it causes a
   *young* GC: it allocates short-lived garbage until a weak reference to a fresh object is cleared (~1 ms pause,
-  frees the arrays that died young). It never calls `System.gc()`: a forced full GC took 125-190 ms and made every
-  ~25th call of a 16 MB `fetch_columns` stream that slow (exp note 45). Counted in `mle_worker_memory_gcs`.
+  frees the arrays that died young). It does not call `System.gc()` on the way: a forced full GC took 125-190 ms
+  and made every ~25th call of a 16 MB `fetch_columns` stream that slow (exp note 45). Only as a last resort, when
+  the worker is still above 85 % of the limit after a young GC and has grown by a twentieth of it since the last
+  full GC, it forces one (old objects keep their native memory until a full GC; exp note 46). Counted in
+  `mle_worker_memory_gcs`.
   Freed arrays reach the system at once because workers run with a fixed glibc mmap threshold
   (`mle.malloc_mmap_threshold`, `GLIBC_TUNABLES`): glibc's adaptive threshold rises to 32 MiB after frees, and then
   freed 16 MB arrays stayed in malloc's heap until the worker was killed.
