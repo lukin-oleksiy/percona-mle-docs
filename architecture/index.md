@@ -21,15 +21,17 @@ a single JVM:
  └──────────────────────┘                   │                       └──────────────┴───────────────┘ │
                                             │  shared Java core: SQL API · value codec ·             │
                                             │  vector helper · libraries · sandbox rules             │
-                                            │  one JIT compiler (Graal) · one heap · one set of limits │
+                                            │  JIT: C2 (Java), Graal (JS, Python) · one heap · limits │
                                             └───────────────────────────────────────────────────────┘
 ```
 
 - **Java routines** are ordinary Java classes, compiled with `javac` inside the worker and run by the JVM.
 - **JavaScript and Python routines** run in one *polyglot context* per worker. The context is created at the first
   JavaScript or Python call, and Java routines can use it too.
-- **Machine code for every language:** the Graal compiler compiles all three, so JavaScript and Python routines run
-  as compiled code once they are warm, not only interpreted.
+- **Machine code for every language:** JavaScript and Python routines are compiled by the Graal compiler (through
+  Truffle) once they are warm, not only interpreted; Java code (routines, libraries, MLE's own worker code) by the
+  JVM's C2 compiler. Under concurrent load Graal kept compiling the workers' Java code, using more CPU than the
+  routines; with C2 for Java, a bulk read at 8 clients is 17 % faster with half the server CPU (exp note 49).
 
 ## What MLE builds on the polyglot runtime
 

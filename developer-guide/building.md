@@ -49,7 +49,7 @@ ninja -C BUILD-mle
 5. **The AOT cache:** a training run (`Train`) records the classes and profiles workers use at start, and the JDK
    builds an AOT cache from it; workers start about twice as fast with it. It belongs to one JDK and one set of
    jars and JVM options, so it is not installed: `mle_aot_cache` rebuilds it on the target (the packages run it).
-   The JVM options it is built with must match `host/defaults.cc`.
+   The JVM options it is built with must match `host/defaults.cc` (`-XX:+UseSerialGC -XX:-UseJVMCICompiler`).
 6. **The native build** (`MLE_PYTHON_NATIVE=ON`): `worker/native/build-native.sh` runs `native-image --shared` on
    the jar without GraalJS, producing `libmleworker.so`; `mle_worker` loads it instead of the JVM.
 
