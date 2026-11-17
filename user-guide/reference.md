@@ -11,7 +11,7 @@ sessions hold workers. Read-only ones are set in the configuration file (`loose-
 | `mle.languages` | `JAVASCRIPT,PYTHON,JAVA` | dynamic | the languages MLE runs |
 | `mle.memory_max` | 2 GB | dynamic, restarts | each worker's memory limit (cgroup `memory.max`); needs a delegated cgroup |
 | `mle.heap_max` | 512 MB | dynamic, restarts | each worker's Java heap |
-| `mle.malloc_mmap_threshold` | 1 MB | dynamic, restarts | glibc's mmap threshold in workers, fixed: freed blocks of this size or more (numpy arrays) go back to the system at once; 0: glibc's adaptive default; at most 32 MB |
+| `mle.malloc_mmap_threshold` | 4 MB | dynamic, restarts | glibc's mmap threshold in workers, fixed: freed blocks of this size or more (numpy arrays) go back to the system at once; 0: glibc's adaptive default; at most 32 MB |
 | `mle.pool_size` | 2 | dynamic, restarts | workers started in advance for new sessions |
 | `mle.pool_prewarm` | `vectors` | dynamic, restarts | what pool workers load while they wait: `none`, or a list of `python`, `numpy`, `vectors` |
 | `mle.vector_threads` | 4 | dynamic, restarts | threads the vector helper may use in one call (at most the number of CPUs) |
