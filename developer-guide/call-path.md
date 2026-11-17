@@ -70,7 +70,10 @@ While the host waits for a `RESULT`, the worker may send `SQL` instead (the rout
   keeps the cursor (rows up to `mle.sql_row_max`). Statement handles use utf8mb4;
   `passResultToClient` sends a result set to the client through the session's protocol.
 - **Rows go back in chunks** (`mle.sql_chunk_rows`, about 768 KB), so a large result doesn't need to fit in the
-  mailbox.
+  mailbox. The runner collects a buffered result's row handles first, so the first chunk carries the total row
+  count (and the warnings, final once the statement ran); the worker sizes its arrays with it (exp note 44).
+  The worker fetches the later chunks as the routine reads them; a direct statement's unread rows are drained
+  into the worker before the routine's next statement, so the server holds at most one buffered result.
 - **Functions and triggers:** the server refuses statements there; its check for direct statements misses a function
   called by a trigger, so the runner asks the prepared path once per call (`refused_here`) and rewords the refusal
   for routine authors (`explain_refusal`).

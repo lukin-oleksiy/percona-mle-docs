@@ -69,7 +69,10 @@ start from the JDK's AOT cache (classes and profiles recorded by `Train` at buil
 - **`GuestSql`** exposes it to JavaScript and Python as polyglot proxies; **`JsSql`** and **`PySql`** add each
   language's globals (`session`, `mysql`, `SqlError`), names (snake_case in Python) and value mappings;
   **`JavaSql`** maps values for Java routines (`Mle.session()`).
-- `fetch_columns` (Python) reads the remaining rows column by column into numpy arrays filled with one memory copy.
+- `fetch_columns` (Python) reads the remaining rows column by column into numpy arrays filled with one memory copy:
+  with the row count known, the arrays are allocated first and each later chunk is copied from the mailbox
+  straight into them while it is decoded (`RowSink`), with no `float[]` per `VECTOR`. JavaScript rows get each
+  `VECTOR` as a heap `ByteBuffer` that the `Float32Array` shares (one copy).
 
 ## Values
 

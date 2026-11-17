@@ -35,7 +35,7 @@ call it belongs to).
 | `CALL` | h→w | routine id, events (unused), arguments |
 | `RESULT` | w→h | the return value, `OUT`/`INOUT` values, stdout, stderr, whether the console was cleared, the error |
 | `SQL` | w→h | an `SqlAction` (execute, prepare, execute prepared, fetch, next result, close), statement id, text, parameters, flags, rows per chunk |
-| `SQL_RESULT` | h→w | an error (errno, SQL state, message), OK (affected rows, last insert id, warnings, more results, parameter count, time), or rows (columns, rows, more rows, more results, warnings, time) |
+| `SQL_RESULT` | h→w | an error (errno, SQL state, message), OK (affected rows, last insert id, warnings, more results, parameter count, time), or rows (columns, the result set's total rows (0: unknown, a cursor), rows, more rows, more results, warnings, time) |
 | `DROP` | h→w | forget a routine |
 | `RESET` | h→w | forget all routines (the worker is kept for its account); globals and loaded libraries stay |
 | `OPTIONS` | h→w | integer and decimal types for JavaScript, the session's time zone |
