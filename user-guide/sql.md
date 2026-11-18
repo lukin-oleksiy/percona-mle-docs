@@ -94,6 +94,57 @@ ERROR 5003 (45003): too many orders for ann
 - `setSavepoint()`, `rollbackTo(name)`, `releaseSavepoint(name)` work as in SQL.
 - Statements and their changes are binary-logged and replicated as for an SQL procedure; the replica needs no MLE.
 
+## Many rows at once: executeMany
+
+`executeMany(rows)` executes a statement once per row of values, without a trip from the routine to mysqld and back
+for every row: in Python `execute_many` (also `executemany`), on a prepared statement or on the session (which
+prepares the statement and deallocates it afterwards).
+
+```sql
+CREATE TABLE scores (id INT PRIMARY KEY, score DOUBLE);
+CREATE PROCEDURE save_scores(IN n INT) MODIFIES SQL DATA LANGUAGE PYTHON AS $$
+    rows = [(i, i / n) for i in range(n)]
+    session.start_transaction()
+    try:
+        session.execute_many('INSERT INTO scores (id, score) VALUES (?, ?)', rows)
+        session.commit()
+    except SqlError as e:
+        session.rollback()
+        raise SqlError('45000', f'row {e.row}: {e.message}', 5001)
+$$;
+CALL save_scores(1000);
+SELECT COUNT(*), ROUND(SUM(score), 1) FROM scores;
+CALL save_scores(3);
+SELECT COUNT(*) FROM scores;
+```
+
+```text
++----------+----------------------+
+| COUNT(*) | ROUND(SUM(score), 1) |
++----------+----------------------+
+|     1000 |                499.5 |
++----------+----------------------+
+ERROR 5001 (45000): row 0: Duplicate entry '0' for key 'scores.PRIMARY'
++----------+
+| COUNT(*) |
++----------+
+|     1000 |
++----------+
+```
+
+- Each row is a list (JavaScript array, Python list or tuple, Java `Object[]`) with one value per parameter marker,
+  as for `bind()`. The result's `getAffectedItemsCount()` is the sum over the rows.
+- **It stops at the first failing row**: the error's `row` (`getRow()` in Java) says which, counted from 0. The rows
+  before it stay written: the transaction is yours. Run a batch in a transaction, as above, to keep it all or
+  nothing; without one, `autocommit` commits every row on its own (slower too: a log flush per row).
+- For statements that return no rows (INSERT, UPDATE, DELETE, REPLACE, ...): a statement that returns a result set
+  is refused after its first row.
+- Every row is one execution of the statement, with the same triggers, row events and binary log as a loop of
+  `execute()`. It saves the trip per row: for rows with a VECTOR(768), 1,000 rows took 47 ms instead of 52 ms, as
+  fast as a multi-row `INSERT`; for small rows the server's work per statement remains (≈ 2.5 µs per row), and a
+  multi-row `INSERT ... VALUES (...), (...)` is still faster (exp note 51).
+- `executeMany` is MLE's addition: Oracle's MySQL JavaScript API has no batch method.
+
 ## Result sets for the client
 
 A procedure can send a result set to the client, as an SQL procedure's `SELECT` does: the option
