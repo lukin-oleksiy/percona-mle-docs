@@ -103,6 +103,39 @@ SELECT @r;
 +----------------------+
 ```
 
+## More jobs on vectors
+
+What people most often do with numpy on embeddings, in Java (SIMD, threads) and the same in the three languages. On a
+`VectorSet` (rows kept in Java) and, for rows passed in, as `Vectors` methods with the rows first.
+
+| Method | Result |
+|---|---|
+| `set.mmr(query, k, lambda[, fetchK])` | a diverse top k (maximal marginal relevance, for RAG): the `fetchK` (default 4k) nearest by cosine, then k of them picked for relevance and against repeating each other; `lambda` 1 is plain relevance, 0 maximal diversity, 0.5–0.8 is usual |
+| `set.within(query, threshold, metric)` | every row at least `threshold` similar (cosine, dot) or at most `threshold` away (euclidean), best first |
+| `set.pairs(threshold, metric[, maxPairs])` | `Pairs` of similar rows, best first (`first(i)`, `second(i)`, `firstId(i)`, `secondId(i)`, `score(i)`): near duplicates, paraphrases; at most 100,000 by default |
+| `set.groups(threshold, metric[, minSize])` | `Groups` of rows linked by close pairs (`members(g)`, `ids(g)`); single linkage, so keep the threshold high |
+| `set.dedup(threshold, metric)` | the ids to keep: the first row of each group and every row without a near duplicate |
+| `set.mean()`, `set.meanOf(ids[, weights])` | a centroid; a profile from the items a user liked |
+| `set.kmeans(k, metric[, maxIterations, seed])` | `Clusters` (`cluster(i)`, `sizes()`, `members(c)`, `ids(c)`, `centroid(c)`, `score(i)`, `assign(v)`, `inertia()`): `euclidean`, or `cosine` for spherical k-means; the same seed gives the same clusters |
+| `set.classify(query, k, metric)` | the label most common among the k nearest (labels: a third column, `SELECT id, vector, label`) |
+| `set.truncate(dims)` | a set of the first `dims` dimensions, normalized again (Matryoshka embeddings) |
+| `pairwise(a, b, metric)`, `similarity(a, b, metric)` | row i with row i; every row with every row (at most 25 million scores) |
+| `mean(rows[, weights])`, `sum(rows)`, `add`, `subtract`, `scale`, `norm`, `manhattan`, `truncate(v, dims)`, `normalizeAll(rows)` | vector arithmetic |
+| `Matches.of(ids, scores[, distance])` | a ranked list from anywhere, for example a full-text search |
+| `Matches.fuse(k, [m1, m2, ...])`, `Matches.blend([m1, m2], [w1, w2])` | hybrid search: reciprocal rank fusion (k = 60 is usual), or a weighted sum of scores scaled to [0, 1] |
+
+```sql
+CREATE PROCEDURE hybrid(IN words TEXT, IN q VECTOR(384), OUT r TEXT) READS SQL DATA LANGUAGE JAVASCRIPT AS $$
+  const V = Java.type('com.percona.mle.api.Vectors')
+  const M = Java.type('com.percona.mle.api.Matches')
+  const text = session.runSql('SELECT id, MATCH(body) AGAINST (?) AS s FROM docs WHERE MATCH(body) AGAINST (?) ' +
+                              'ORDER BY s DESC LIMIT 20', [words, words]).fetchAll()
+  const byText = M.of(text.map(x => x.id), text.map(x => x.s))
+  const byVector = V.load('SELECT id, emb FROM docs').mmr(q, 20, 0.7)
+  r = String(M.fuse(60, [byText, byVector]))
+$$;
+```
+
 ## Which tool for which job
 
 | Job | Best done by |
@@ -110,6 +143,7 @@ SELECT @r;
 | the nearest rows to one query, in a large table | SQL: `ORDER BY DISTANCE(...) LIMIT k` with an HNSW index |
 | re-ranking a few candidates with other columns (price, stock, dates) | a Python routine with `fetch_columns` and numpy |
 | related items for every row of a table | the vector helper's `related` (all rows against all) |
+| diverse results, near duplicates, clusters, hybrid ranking | the vector helper (above) |
 | your own similarity or statistics over vectors | numpy (Python, or from JavaScript and Java) |
 | a vector function used in a query, row by row | a function in any language (`Vectors.cosine` is fast in all three) |
 
