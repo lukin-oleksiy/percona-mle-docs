@@ -148,8 +148,15 @@ ERROR 5001 (45000): row 0: Duplicate entry '0' for key 'scores.PRIMARY'
   Smaller batches don't win back the cost of preparing the longer statement in every call. Affected rows, triggers and row events stay the same, and so do the
   error rules above (a failing chunk is repeated row by row to find the row). What you can notice: `NOW()` and
   `CURRENT_TIMESTAMP` defaults have one value per statement, and `LAST_INSERT_ID()` afterwards is the first id of
-  the last statement. MLE remembers that a table is InnoDB for the worker's session; if it was changed to
-  another engine since and a statement fails, the error's `row` is the first row of that statement.
+  the last statement.
+- **When a chunk fails,** it is run again row by row to find the failing row only if that repeats nothing:
+  the error is one of a row's values (duplicate key, `NULL`, out of range, too long, foreign key, `CHECK`), and
+  the table is still InnoDB, has no triggers (a trigger's writes to non-transactional tables would stay and be
+  repeated) and is not hidden by a temporary table. (Triggers are seen as the routine's account sees them: an
+  account without the `TRIGGER` privilege on the table does not see them.) Otherwise the error's `row` is the first row of the chunk
+  and its message says that the chunk ran as one statement: InnoDB wrote none of its rows, and the chunks before
+  it stay, as rows before a failing row do. After a multi-row batch, bind every marker of the prepared statement
+  again before `execute()`.
   `batchRewrite: false` (`prepare(sql, {batchRewrite: false})`, or
   `executeMany(sql, rows, {batchRewrite: false})`) runs one statement per row. Other statements always run one
   statement per row.
@@ -247,8 +254,14 @@ Options go with a statement (`runSql(sql, params, options)`, `prepare(sql, optio
 |---|---|---|
 | `mle.sql_result_max` | 64 MB | the largest result of a statement (the server holds it while the routine reads it) |
 | `mle.sql_statements_max` | 1024 | statements a call keeps open |
+| `mle.sql_call_results_max` | 0: four times `mle.sql_result_max` | memory that the results of a call's open statements may hold in the server, nested calls included |
 
 Rows reach the routine in chunks as it fetches them, so the routine holds only what it keeps. The server holds one
 result at a time: rows left unread when the routine runs its next statement are read into the routine's worker
 first (close a result you do not need). For results larger
 than `mle.sql_result_max`, read them in parts (ranges of a key) or raise the setting.
+
+A prepared statement keeps its last result in the server until it is executed again or closed
+(`deallocate()`), read or not. When the open statements of a call (and of the calls it is nested in) hold
+`mle.sql_call_results_max` already, the next statement fails with "the results of the open statements hold too
+much memory": close the statements you no longer need.

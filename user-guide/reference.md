@@ -24,6 +24,7 @@ sessions hold workers. Read-only ones are set in the configuration file (`loose-
 | `mle.sql_result_max` | 64 MB | dynamic | the largest result of a statement that a routine runs |
 | `mle.sql_row_max` | 16 MB | dynamic | only with a server whose statement service has no `use_cursor` attribute: the largest row of a prepared statement (then read with a cursor) |
 | `mle.sql_statements_max` | 1024 | dynamic | statements a call keeps open |
+| `mle.sql_call_results_max` | 0 | dynamic | memory in bytes that the results of a call's open statements may hold in the server (nested calls included) before another statement is refused; 0: four times `mle.sql_result_max` |
 | `mle.sql_chunk_rows` | 1000 | dynamic | rows sent to the worker at a time (a chunk also ends at about 768 KB) |
 | `mle.cgroup_base` | `AUTO` | read-only | where worker cgroups go: `AUTO` (beside mysqld's, if delegated), `NONE`, or a path |
 | `mle.dir` | `<plugin_dir>/mle` | read-only | MLE's files (launcher, worker, runtimes) |

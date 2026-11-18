@@ -25,6 +25,17 @@ account could reach with SQL.
   SQL routine.
 - **One worker per session and account.** A session that calls routines of two definers has two workers. Code of
   one account never runs in a process with another account's code or data.
+- **`SQL SECURITY INVOKER` routines of another definer get a worker of their own** (per caller and definer). They
+  run with the caller's privileges, as in MySQL, but what their code changes inside the language (JavaScript's
+  built-in objects, Python's `builtins`, Java static fields) stays away from the caller's own routines. A session
+  that calls `INVOKER` routines of several definers holds a worker for each. Libraries are different: a routine
+  that imports a library (`USING`, `import`) runs the library's code in its own worker, as its own code. Code
+  that such a routine evaluates with `mle_eval()` runs in the routine's worker too. (An SQL-language `INVOKER`
+  function of another definer that calls `mle_eval()` is not covered: it runs the snippet in the caller's
+  worker, if the caller may create routines in that language.)
+- **Source lines in tracebacks** (`mle_session_state('traceback')`, `mle.console = WARNINGS`) are shown to those
+  who may see the routine's definition: its definer and accounts with `SHOW_ROUTINE`. Other callers get the
+  frames (routine, line, function) without the source text.
 - **Workers are reused only for the same account:** after a session, a worker may be kept for the account's next
   session (`mle.worker_cache_size`). Values a routine leaves in library state, Python modules or Java static fields
   can then be seen by that account's later calls. With `SQL SECURITY DEFINER`, the account is the definer, so

@@ -80,6 +80,12 @@ SELECT ROUTINE_NAME, LIBRARY_NAME FROM information_schema.ROUTINE_LIBRARIES WHER
 Replace it with `DROP LIBRARY` and `CREATE LIBRARY`. Routines that use it get the new version from their next
 statement on; there is no need to recreate them.
 
+That holds for libraries that other libraries import too: when a library changed or was dropped, the libraries that
+import it are evaluated again at their next use (their module-level state starts over), and what a routine may
+import is checked for every routine, also for imports made by a library it uses. One case to avoid: a library
+that imports another one inside a function (`import()`, `import_library()`) and keeps the module in a variable
+of its own keeps that version until it is itself evaluated again; import at the top of the library instead.
+
 ```sql
 DROP LIBRARY validate;
 CREATE LIBRARY validate LANGUAGE JAVASCRIPT AS $$

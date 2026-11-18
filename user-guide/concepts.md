@@ -123,7 +123,8 @@ that MLE starts and stops.
 
 - **A worker per session and account.** A session gets a worker when it first calls a routine, for the account the
   routine runs as: its definer, or the caller with `SQL SECURITY INVOKER`. Routines of different accounts never share
-  a worker, so one account's code can't see another's data.
+  a worker, so one account's code can't see another's data. An `SQL SECURITY INVOKER` routine that another account
+  defined runs with the caller's privileges but in a worker of its own, apart from the caller's own routines.
 - **SQL goes back to the server,** in the caller's session: the same transaction, the same locks, the same
   privileges as an SQL routine of the same account.
 - **The sandbox:** a routine can't read or write files, open network connections, start programs or see other

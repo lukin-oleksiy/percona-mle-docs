@@ -7,7 +7,7 @@ examples come from the MLE test suite.
 | You want to | Use |
 |---|---|
 | know where an error happened | the error message: `(routine, line N, in function)` |
-| see the whole call chain with source lines | `SELECT mle_session_state('traceback')` |
+| see the whole call chain with source lines | `SELECT mle_session_state('traceback')` (source lines: for the routine's definer and accounts with `SHOW_ROUTINE`; others see the frames only) |
 | see what the last call printed | `SELECT mle_session_state('last_output')` |
 | see the output with every statement | `SET SESSION mle.console = WARNINGS` |
 | try an expression, a library's API, a snippet | `SELECT mle_eval('python', '...')` |
