@@ -12,6 +12,7 @@ nav:
           - SQL from routines: user-guide/sql.md
           - Libraries: user-guide/libraries.md
           - Vectors: user-guide/vectors.md
+          - Statistics: user-guide/statistics.md
           - Debugging routines: debugging/index.md
       - Running MLE:
           - Install: install/index.md
