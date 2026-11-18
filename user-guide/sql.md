@@ -139,10 +139,20 @@ ERROR 5001 (45000): row 0: Duplicate entry '0' for key 'scores.PRIMARY'
   nothing; without one, `autocommit` commits every row on its own (slower too: a log flush per row).
 - For statements that return no rows (INSERT, UPDATE, DELETE, REPLACE, ...): a statement that returns a result set
   is refused after its first row.
-- Every row is one execution of the statement, with the same triggers, row events and binary log as a loop of
-  `execute()`. It saves the trip per row: for rows with a VECTOR(768), 1,000 rows took 47 ms instead of 52 ms, as
-  fast as a multi-row `INSERT`; for small rows the server's work per statement remains (≈ 2.5 µs per row), and a
-  multi-row `INSERT ... VALUES (...), (...)` is still faster (exp note 51).
+- It saves the trip from the routine to mysqld per row: for rows with a VECTOR(768), 1,000 rows took 47 ms
+  instead of 52 ms (exp note 51).
+- **Multi-row statements:** an `INSERT` or `REPLACE` of one row of values (each a `?`, `NULL`, `DEFAULT` or a
+  literal; optionally `AS alias` and `ON DUPLICATE KEY UPDATE` without `?`) into an InnoDB table, with 256 rows
+  or more, runs as statements of up to 1,000 rows, as Connector/J's `rewriteBatchedStatements` does: the server
+  then starts one statement per chunk, not per row (1,000 small rows: 11 ms instead of 13 ms; exp note 52).
+  Smaller batches don't win back the cost of preparing the longer statement in every call. Affected rows, triggers and row events stay the same, and so do the
+  error rules above (a failing chunk is repeated row by row to find the row). What you can notice: `NOW()` and
+  `CURRENT_TIMESTAMP` defaults have one value per statement, and `LAST_INSERT_ID()` afterwards is the first id of
+  the last statement. MLE remembers that a table is InnoDB for the worker's session; if it was changed to
+  another engine since and a statement fails, the error's `row` is the first row of that statement.
+  `batchRewrite: false` (`prepare(sql, {batchRewrite: false})`, or
+  `executeMany(sql, rows, {batchRewrite: false})`) runs one statement per row. Other statements always run one
+  statement per row.
 - `executeMany` is MLE's addition: Oracle's MySQL JavaScript API has no batch method.
 
 ## Result sets for the client
@@ -226,6 +236,7 @@ SELECT @r;
 | `integerType` | `UNSAFE_STRING` (default), `UNSAFE_BIGINT`, `STRING`, `BIGINT` | JavaScript: how integers beyond 2<sup>53</sup> arrive |
 | `decimalType` | `STRING` (default), `NUMBER` | JavaScript: how `DECIMAL` arrives |
 | `charsetName` | `utf8mb4` | a statement |
+| `batchRewrite` | `true` (default), `false` | `executeMany`: may run the rows as multi-row statements |
 
 Options go with a statement (`runSql(sql, params, options)`, `prepare(sql, options)`) or for the session
 (`session.setOptions({...})`). In Python their names can be snake_case.
