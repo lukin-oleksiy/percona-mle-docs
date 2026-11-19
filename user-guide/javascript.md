@@ -86,7 +86,8 @@ ERROR 6000 (HY000): MLE-Type> Cannot convert value '300' to TINYINT from MLE in 
 ```
 
 **Large integers and decimals: session options.** `mle_set_session_state` changes how integers and `DECIMAL`
-values arrive in JavaScript, for the session's routines loaded afterwards:
+values arrive in JavaScript, for the session's routines loaded afterwards. Its argument is a JSON object of the
+options to set; an option that is not given keeps its value, and `mle_session_reset()` brings back the defaults:
 
 | Option | Values |
 |---|---|

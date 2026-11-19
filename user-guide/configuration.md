@@ -51,7 +51,7 @@ Peak memory is roughly:
 | `mle.heap_max` | 512 MB | each worker's Java heap |
 | `mle.malloc_mmap_threshold` | 4 MB | allocations of at least this size in a worker (numpy arrays) are returned to the system as soon as they are freed; 0: glibc's adaptive default |
 | `mle.max_workers` | 64 | workers held by sessions at a time; beyond it calls fail (error 6112) |
-| `mle.languages` | `JAVASCRIPT,PYTHON,JAVA` | the languages routines may use |
+| `mle.languages` | `JAVASCRIPT,PYTHON,JAVA` | the languages routines may use; a list in `my.cnf` with a name MLE does not know enables none (the error log says so) |
 
 - numpy's memory is freed by Java's garbage collector; when a call's memory grows, the worker makes it run a short
   (young) collection (`mle_worker_memory_gcs`), never a long full one. A loop that allocates large temporary
