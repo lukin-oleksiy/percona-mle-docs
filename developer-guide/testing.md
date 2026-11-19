@@ -85,6 +85,32 @@ per-call cost of the mailbox, memory per worker.
 image and compares the outputs shown on the page. After a change users can see, rebuild the images and run it; with
 `--record` it writes the actual outputs into the pages (review the diff).
 
+## The performance regression test
+
+`perf/regression.py` compares two builds of MLE, the code before a change and after it, on one server and one set
+of data:
+
+```sh
+perf/regression.py --server <release server build> --base <MLE build before> --new <MLE build after>
+```
+
+- **Cases** (`perf/setup.sql`, the table `perf.cases`): a function per row in each language (also another account's
+  INVOKER routine and a routine that uses a library), arguments and results of every type, errors caught by a
+  handler, SQL from routines (reading rows, many small statements, prepared statements, `executeMany`, a routine
+  whose SQL calls routines), vectors with numpy and Java, and a new connection's first call (with the account's kept
+  worker, and with a worker from the pool).
+- **Method:** a round is one server run per build, in alternating order (base, new; new, base; ...), so whatever
+  else the machine does hits both builds. Each case runs warm-up calls, then timed calls; the report compares the
+  best and the median call of each round.
+- **Verdict:** a case is `SLOWER` when the new build is over the threshold (5 %; more for the connection cases) in
+  both measures and in all rounds but one; the test then exits with status 1. `check` means one measure only was
+  over: usually noise; run the case again with `--only`.
+- Release builds, a quiet machine, the CPU governor `performance`. Run it with the same build as base and new to see
+  the noise of a machine.
+
+Run it before merging a change to the call path, the codec, the SQL bridge or the worker. A new hot path gets a
+case in `perf/setup.sql`.
+
 ## Benchmarks
 
 - **Method:** release builds, the CPU governor set to `performance`, a quiet machine (load below 2), at least two
