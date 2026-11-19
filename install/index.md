@@ -25,13 +25,14 @@ Packages are built from the [percona-mle](https://github.com/lukin-oleksiy/perco
 
 | Package | Contents | JVM build | Python-only build |
 |---|---|---|---|
-| `percona-mle-common` | `component_mle`, the launcher and the worker bootstrap; on Debian and Ubuntu the AppArmor profile | yes | yes |
+| `percona-mle-common` | `component_mle`, the launcher and the worker bootstrap | yes | yes |
 | `percona-mle` | the JVM build: worker, runtime jars, JavaScript and Java | yes | |
 | `percona-mle-jdk` | a trimmed GraalVM runtime | yes | |
 | `percona-mle-python-runtime` | Python's standard library and the numpy environment | with Python | yes |
 | `percona-mle-python` | GraalPy for the JVM build | with Python | |
 | `percona-mle-python-native` | the Python-only native build | | yes |
 | `percona-mle-tools` | `mle_package`, the DBA's tool for third-party packages (runs on the JVM build) | optional | |
+| `percona-mle-apparmor` | the AppArmor profile for MLE's processes (DEB only; recommended by `percona-mle-common`, so `apt` installs it with it) | Debian, Ubuntu | Debian, Ubuntu |
 | `percona-mle-selinux` | the SELinux policy for MLE's processes (RPM only; installed with `percona-mle-common` where SELinux policy is installed) | RHEL | RHEL |
 
 On Debian or Ubuntu, for example:
@@ -100,7 +101,7 @@ session holds a worker.
 ## Debian and Ubuntu: AppArmor
 
 Percona Server's package comes with an AppArmor profile for `mysqld` (`/etc/apparmor.d/usr.sbin.mysqld`), installed
-in complain mode: it reports what it would refuse and refuses nothing. `percona-mle-common` adds what MLE needs:
+in complain mode: it reports what it would refuse and refuses nothing. `percona-mle-apparmor` adds what MLE needs:
 
 | File | What |
 |---|---|
@@ -111,7 +112,7 @@ The package adds one line to `/etc/apparmor.d/local/usr.sbin.mysqld`, the server
 and takes it out when it is removed:
 
 ```text
-include <abstractions/percona-mle-mysqld>  # added by percona-mle-common
+include <abstractions/percona-mle-mysqld>  # added by percona-mle-apparmor
 ```
 
 MLE's profile is installed in complain mode too, as the server's is. To enforce both:
