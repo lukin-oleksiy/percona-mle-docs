@@ -14,6 +14,10 @@ account could reach with SQL.
 | install third-party packages | the OS user who may write `mle.package_dir` (`mle_package`), then `SYSTEM_VARIABLES_ADMIN` for `mle_packages_refresh()` |
 | change limits and languages | the `mle.*` system variables (`SYSTEM_VARIABLES_ADMIN`) |
 
+The language privileges are checked by MLE when a routine is created. A routine created while `component_mle` was
+not installed was not checked: MLE runs it once it is installed. Keep `CREATE ROUTINE` from accounts that should
+not write routines in any language.
+
 - Grant the language privileges like `CREATE ROUTINE` on a schema: to the accounts that write code, not to
   applications.
 - `mle.languages` turns languages off for the whole server.

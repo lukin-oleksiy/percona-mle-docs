@@ -27,7 +27,9 @@ mle_package remove python networkx
 
 ## Making new packages visible
 
-Workers load the package directory when they start, and a running worker keeps what it had. After installing:
+Workers load the package directory when they start, and a running worker keeps what it had. `mle_package` writes
+into the directory in place: a worker that starts while it runs can find a package half installed, so install while
+routines that use packages are not running. After installing:
 
 ```sql
 SELECT mle_packages_refresh();

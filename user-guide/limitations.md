@@ -23,11 +23,26 @@ What MLE doesn't do (yet), and the edges to know about. MLE is a proof of concep
 - **JavaScript is not Node.js:** no `fs`, `process`, `http` or timers (`setTimeout`).
 - **Python C extensions** need a GraalPy build (GraalPy's binary wheels, or a build from source).
 - **`mle_eval`** can't run SQL and keeps nothing between calls.
+- **JavaScript `await`:** a routine whose text contains the word `await`, also in a comment or a string, is
+  compiled as an asynchronous function, and such a routine can't be called from the SQL of another routine.
+- **JavaScript built-ins are shared by a worker's calls:** every call has fresh global variables, but a change to a
+  built-in object (`Array.prototype`, `JSON`) stays for the account's worker.
+- **JavaScript `Date` local time** (`getHours()`, `toString()`) is in the server's system time zone, while
+  `DATETIME` and `TIMESTAMP` values are converted in the session's: use the UTC methods.
+- **Java source is recognised by its text:** whether a routine is a method body or a class, and the class's name,
+  are found by patterns, which a comment or a string that looks like a class declaration can mislead.
+- **Java libraries are compiled on their own:** a Java library can't use another library.
+- **A JavaScript library's name** can't contain `.` or `/`: a routine that imports such a library gets an error.
+- **Two Python routines of one name** (in two schemas) used in one session: a traceback of one may show the other's
+  source text at the right line number.
 
 ## Debugging
 
 - **No step-by-step debugger** (breakpoints, variable inspection) yet: errors carry their location and traceback, and
   output can come back as warnings (see [Debugging routines](../debugging/index.md)).
+- **Resetting a connection** (`mysql_reset_connection()`, as connection pools do) does not reset MLE's session
+  state: printed output, the last traceback and the options of `mle_set_session_state()` stay. Call
+  `mle_session_reset()` after it.
 - **JavaScript has no CREATE-time check for misspelt names** (Python does; Java is compiled).
 
 ## Performance
@@ -62,3 +77,9 @@ What MLE doesn't do (yet), and the edges to know about. MLE is a proof of concep
   parts (ranges of a key) or raise the setting.
 - **A routine's result** (with what it printed) and each statement it sends are limited to 64 MB.
 - **Python `VECTOR` arguments** are read-only numpy arrays, valid during the call (`copy()` to keep or change one).
+- **A column named like a method of a row** (`getField`, `toArray`; in Python a list method such as `count`) is
+  not an attribute of the row: read it with `row.getField('count')`.
+- **The statistics helper computes in `double`:** `BIGINT` and `DECIMAL` values above 2<sup>53</sup> lose their
+  last digits there, also as group keys. The vector helper computes distances in `float`.
+- **The system time zone** needs a name (`TZ=Europe/Kyiv`, or `/etc/localtime` as a link into the zone database)
+  for daylight saving time; without one MLE uses the current offset. `default_time_zone` avoids the question.
