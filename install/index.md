@@ -25,7 +25,7 @@ Packages are built from the [percona-mle](https://github.com/lukin-oleksiy/perco
 
 | Package | Contents | JVM build | Python-only build |
 |---|---|---|---|
-| `percona-mle-common` | `component_mle`, the launcher and the worker bootstrap | yes | yes |
+| `percona-mle-common` | `component_mle`, the launcher and the worker bootstrap; on Debian and Ubuntu the AppArmor profile | yes | yes |
 | `percona-mle` | the JVM build: worker, runtime jars, JavaScript and Java | yes | |
 | `percona-mle-jdk` | a trimmed GraalVM runtime | yes | |
 | `percona-mle-python-runtime` | Python's standard library and the numpy environment | with Python | yes |
@@ -96,6 +96,51 @@ session holds a worker.
   Without it MLE runs, with the workers' own heap limit and the system's limits.
 - Percona Server with the language router (`component_lang_router`), of the server line the packages were built
   for.
+
+## Debian and Ubuntu: AppArmor
+
+Percona Server's package comes with an AppArmor profile for `mysqld` (`/etc/apparmor.d/usr.sbin.mysqld`), installed
+in complain mode: it reports what it would refuse and refuses nothing. `percona-mle-common` adds what MLE needs:
+
+| File | What |
+|---|---|
+| `/etc/apparmor.d/percona-mle` | the profile `percona-mle` of `mle_launcher` and the workers: MLE's own files, the packages, the workers' cgroups; none of mysqld's data, keys or configuration, no network |
+| `/etc/apparmor.d/abstractions/percona-mle-mysqld` | the rules `mysqld` needs: starting `mle_launcher` in that profile, talking to it, stopping workers |
+
+The package adds one line to `/etc/apparmor.d/local/usr.sbin.mysqld`, the server profile's file of local additions,
+and takes it out when it is removed:
+
+```text
+include <abstractions/percona-mle-mysqld>  # added by percona-mle-common
+```
+
+MLE's profile is installed in complain mode too, as the server's is. To enforce both:
+
+```sh
+aa-enforce /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/percona-mle
+systemctl restart mysql
+```
+
+When they are enforced:
+
+- **Other directories.** The profiles know the packages' paths. A different `mle.dir`, `mle.java_home` or
+  `mle.package_dir` (other than `/var/lib/mysql-mle-packages`) goes into `/etc/apparmor.d/local/percona-mle`, and
+  the directories `mysqld` reads into `/etc/apparmor.d/local/usr.sbin.mysqld`:
+
+    ```text
+    /srv/mle-packages/ r,
+    /srv/mle-packages/** mr,
+    ```
+
+- **The error log.** The launcher and the workers write to mysqld's error log, and AppArmor then checks mysqld's
+  own writes to it against MLE's profile too. The profile allows `/var/log/mysql/`; for an error log somewhere else
+  add `/path/to/error.log w,` to `/etc/apparmor.d/local/percona-mle` (without it MLE's own messages are lost).
+- **A profile of `mysqld` that doesn't include `local/usr.sbin.mysqld`** needs the `include` line above itself;
+  without it `INSTALL COMPONENT 'file://component_mle'` fails with `cannot start mle_launcher: ... Permission denied`.
+
+Reload a changed profile with `apparmor_parser -r /etc/apparmor.d/percona-mle` (or `usr.sbin.mysqld`). The worker
+sandbox (Landlock and seccomp) applies inside the profile as everywhere else. Workers keep the launcher's profile:
+they start with `no_new_privs`, which rules out a profile of their own.
 
 ## Red Hat Enterprise Linux and compatible systems
 

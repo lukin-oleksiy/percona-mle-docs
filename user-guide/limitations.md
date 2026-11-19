@@ -45,6 +45,17 @@ What MLE doesn't do (yet), and the edges to know about. MLE is a proof of concep
 - **Python is single-threaded in a worker** (GraalPy's lock): calls between Python and the other languages are cheap,
   but don't run Python in parallel inside one call.
 
+## Character sets
+
+- **utf8mb4 only.** Create and call routines from connections whose character set is utf8mb4 (the default of
+  MySQL's clients). Other client character sets are not supported in this proof of concept: a routine created from a
+  `latin1` connection stores the non-ASCII text of its SQL statements wrongly, whoever calls it later. Tables and
+  columns can use any character set: the server converts on the way in and out.
+- **Characters outside the Basic Multilingual Plane** (emoji, for example) in a routine's text give the server's
+  warning 1300 at `CREATE` and at the first call, and `information_schema.ROUTINES` shows them as `?` (the server
+  keeps that copy in utf8mb3; a stored SQL routine does the same). The routine itself runs with the right text. An
+  error message loses such characters too; `mle_session_state('traceback')` keeps them.
+
 ## Data
 
 - **The largest result** of a statement a routine runs is `mle.sql_result_max` (64 MB); read larger results in

@@ -57,6 +57,9 @@ any code:
 - **Threads:** Python routines can't start threads; Java threads must end with the call, or the worker is retired.
 - **On RHEL and compatible systems** SELinux confines the launcher and the workers in domains of their own (see
   [Install](../install/index.md)).
+- **On Debian and Ubuntu** the launcher and the workers have an AppArmor profile of their own, without mysqld's
+  data, keys and configuration (see [Install](../install/index.md)); like the server's profile, it is installed in
+  complain mode.
 
 ```sql
 CREATE FUNCTION try_files() RETURNS TEXT LANGUAGE PYTHON AS $$
